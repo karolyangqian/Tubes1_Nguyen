@@ -1,0 +1,16 @@
+{
+  "name": "Nguyen",
+  "version": "1.0",
+  "authors": [
+    "Ahmad Ibrahim",
+    "Karol Yangqian P",
+    "Aria Judhistira"
+  ],
+  "description": "Tracks and fires at the nearest bot it sees. Moves a bit.",
+  "homepage": "",
+  "countryCodes": [
+    "id"
+  ],
+  "platform": ".Net 9.0",
+  "programmingLang": "C# 12.0"
+}
