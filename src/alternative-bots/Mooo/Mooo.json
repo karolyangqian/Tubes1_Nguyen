@@ -1,0 +1,10 @@
+{
+  "name": "Mooo",
+  "version": "1.0",
+  "authors": ["mooo-nguyen"],
+  "description": "sapi",
+  "homepage": "",
+  "countryCodes": ["id"],
+  "platform": ".Net 9.0",
+  "programmingLang": "C# 10.0"
+}
