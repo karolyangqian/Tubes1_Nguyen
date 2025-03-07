@@ -1,0 +1,10 @@
+{
+  "name": "miaw",
+  "version": "2.0",
+  "authors": ["miaw-nguyen"],
+  "description": "meng",
+  "homepage": "",
+  "countryCodes": ["id"],
+  "platform": ".Net 9.0",
+  "programmingLang": "C# 10.0"
+}
