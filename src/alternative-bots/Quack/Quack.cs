@@ -13,9 +13,12 @@ using Robocode.TankRoyale.BotApi.Events;
 // ------------------------------------------------------------------
 public class Quack : Bot
 {
+    private const double MAX_SHOOT_RANGE_THRESH = 600;
     private double scannedEnemyX;
     private double scannedEnemyY;
-    private bool anEnemyScanned;
+    private double scannedEnemySpeed;
+    private double scannedEnemyDirection;
+    private bool enemyDetected;
 
 
     // The main method starts our bot
@@ -38,28 +41,35 @@ public class Quack : Bot
         ScanColor = pink;
         BulletColor = pink;
         AdjustGunForBodyTurn = true;
-        // AdjustRadarForGunTurn = true;
+        AdjustRadarForGunTurn = true;
         AdjustRadarForBodyTurn = true;
-        anEnemyScanned = false;
+        enemyDetected = false;
 
-        // Loop while running
+        QuackDriverV1();
+    }
+
+// ================================ DRIVERS ==================================
+
+    public void QuackDriverV1() {
         while (IsRunning)
         {
-            // TurnGunLeft(10); // Scans automatically as radar is mounted on gun
-            if (anEnemyScanned) {
-                // TrackScanAt(scannedEnemyX, scannedEnemyY);
-                TrackScanWithGunAt(scannedEnemyX, scannedEnemyY);
-                // shootAt(scannedEnemyX, scannedEnemyY, 1, 0);
+            if (enemyDetected) {
+                TrackScanAt(scannedEnemyX, scannedEnemyY);
+                // ShootAt(scannedEnemyX, scannedEnemyY, 1, 3);
+                ShootPredict(scannedEnemyX, scannedEnemyY, scannedEnemySpeed, scannedEnemyDirection, CalculateFirePower(scannedEnemyX, scannedEnemyY));
+                enemyDetected = false;
             } else {
-                TurnGunLeft(20);
+                TurnRadarLeft(20);
             }
-            // anEnemyScanned = false;
-            // Forward(20);
-            // TurnLeft(50);
-            // trackScanAt(900, 900);
-            // Back(20);
+            SetTurnLeft(10);
+            // Limit our speed to 5
+            MaxSpeed = 5;
+            // Start moving (and turning)
+            SetForward(10);
         }
     }
+
+// ================================ EVENT HANDLERS ==================================
 
     // We scanned another bot -> we have a target, so go get it
     // public override void OnScannedBot(ScannedBotEvent e)
@@ -85,10 +95,9 @@ public class Quack : Bot
     {
         scannedEnemyX = e.X;
         scannedEnemyY = e.Y;
-        anEnemyScanned = true;
-        Fire(1);
-        // shootAt(scannedEnemyX, scannedEnemyY, 1, 5);
-        // AimGunAt(scannedEnemyX, scannedEnemyY, 0);
+        scannedEnemySpeed = e.Speed;
+        scannedEnemyDirection = e.Direction;
+        enemyDetected = true;
     }
 
     // We won the round -> do a victory dance!
@@ -98,12 +107,7 @@ public class Quack : Bot
         TurnLeft(36_000);
     }
 
-    // normalizes a bearing to between +180 and -180
-    private double NormalizeBearing(double angle) {
-        while (angle >  180) angle -= 360;
-        while (angle < -180) angle += 360;
-        return angle;
-    }
+// ================================ FEATURES ==================================
 
     private void TrackScanAt(double x, double y) {
         var bearingFromRadar = RadarBearingTo(x, y);
@@ -121,16 +125,57 @@ public class Quack : Bot
     }
 
     private void AimGunAt(double x, double y, double degreesMaxOffset) {
-        var bearingFromGun = GunBearingTo(X, y);
+        var bearingFromGun = GunBearingTo(x, y);
         var rnd = new Random();
         TurnGunLeft(bearingFromGun + GetRandomSign()*rnd.NextDouble()*degreesMaxOffset);
     }
 
     private void ShootAt(double x, double y, double power, double degreesMaxOffset) {
-        AimGunAt(X, y, degreesMaxOffset);
+        AimGunAt(x, y, degreesMaxOffset);
         Fire(power);
     }
 
+    private void ShootPredict(double targetX, double targetY, double targetSpeed, double targetDirection, double firePower) {
+        double bulletSpeed = CalcBulletSpeed(firePower);
+        
+        double dx = targetX - X;
+        double dy = targetY - Y;
+        // double absBearing = Math.Atan2(dy, dx);
+        
+        double enemyDir = targetDirection * Math.PI / 180.0;
+        
+        // double ratio = Math.Max(-1, Math.Min(1, (scannedEnemySpeed * Math.Sin(enemyDir - absBearing)) / bulletSpeed));
+        // double leadAngle = Math.Asin(ratio);
+        
+        // double gunDirection = absBearing + leadAngle;
+        
+        double distance = Math.Sqrt(dx * dx + dy * dy);
+        double time = distance / bulletSpeed;
+        
+        double predictedX = targetX + targetSpeed * time * Math.Cos(enemyDir);
+        double predictedY = targetY + targetSpeed * time * Math.Sin(enemyDir);
+        
+        double bearingFromGun = GunBearingTo(predictedX, predictedY);
+        
+        TurnGunLeft(bearingFromGun);
+        Fire(firePower);
+    }
+
+    private double CalculateFirePower(double targetX, double targetY) {
+        double dist = DistanceTo(targetX, targetY);
+        dist = dist > MAX_SHOOT_RANGE_THRESH ? MAX_SHOOT_RANGE_THRESH : dist;
+        double val = (MAX_SHOOT_RANGE_THRESH - dist) / MAX_SHOOT_RANGE_THRESH;
+        return 1 + 2 * val;
+    }
+
+// ================================ UTILS ==================================
+
+    // normalizes a bearing to between +180 and -180
+    private double NormalizeBearing(double angle) {
+        while (angle >  180) angle -= 360;
+        while (angle < -180) angle += 360;
+        return angle;
+    }
     private double DegreesToRadians(double degrees) {
         return degrees * (Math.PI / 180);
     } 
