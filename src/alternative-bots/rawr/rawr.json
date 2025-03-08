@@ -1,0 +1,10 @@
+{
+  "name": "rawr",
+  "version": "1.0",
+  "authors": ["rawr-nguyen"],
+  "description": "rawr",
+  "homepage": "",
+  "countryCodes": ["id"],
+  "platform": ".Net 9.0",
+  "programmingLang": "C# 10.0"
+}

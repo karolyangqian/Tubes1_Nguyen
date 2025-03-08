@@ -823,11 +823,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Code\\Kuliah\\Strategi Algoritma\\robocode\\myBot\\Mooo\\Mooo.csproj",
+      "projectUniqueName": "D:\\Code\\Kuliah\\Strategi Algoritma\\robocode\\Tubes1_Nguyen\\src\\alternative-bots\\Mooo\\Mooo.csproj",
       "projectName": "Mooo",
-      "projectPath": "D:\\Code\\Kuliah\\Strategi Algoritma\\robocode\\myBot\\Mooo\\Mooo.csproj",
+      "projectPath": "D:\\Code\\Kuliah\\Strategi Algoritma\\robocode\\Tubes1_Nguyen\\src\\alternative-bots\\Mooo\\Mooo.csproj",
       "packagesPath": "C:\\Users\\jarv1s\\.nuget\\packages\\",
-      "outputPath": "D:\\Code\\Kuliah\\Strategi Algoritma\\robocode\\myBot\\Mooo\\obj\\",
+      "outputPath": "D:\\Code\\Kuliah\\Strategi Algoritma\\robocode\\Tubes1_Nguyen\\src\\alternative-bots\\Mooo\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\jarv1s\\AppData\\Roaming\\NuGet\\NuGet.Config"

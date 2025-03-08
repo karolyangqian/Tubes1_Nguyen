@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "cx6KvpkHqow=",
+  "dgSpecHash": "uatKZaXBfuA=",
   "success": true,
-  "projectFilePath": "D:\\Code\\Kuliah\\Strategi Algoritma\\robocode\\myBot\\Mooo\\Mooo.csproj",
+  "projectFilePath": "D:\\Code\\Kuliah\\Strategi Algoritma\\robocode\\Tubes1_Nguyen\\src\\alternative-bots\\Mooo\\Mooo.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\jarv1s\\.nuget\\packages\\microsoft.build.locator\\1.7.8\\microsoft.build.locator.1.7.8.nupkg.sha512",
     "C:\\Users\\jarv1s\\.nuget\\packages\\microsoft.extensions.configuration\\8.0.0\\microsoft.extensions.configuration.8.0.0.nupkg.sha512",
