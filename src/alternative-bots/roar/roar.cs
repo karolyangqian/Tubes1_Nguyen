@@ -29,10 +29,10 @@ public class Roar : Bot
         Console.WriteLine("Hello! I'm Roar!");
         
         BodyColor = Color.Red;
-        TurretColor = Color.Red;
-        RadarColor = Color.Black;
-        BulletColor = Color.Black;
-        ScanColor = Color.Black;
+        TurretColor = Color.White;
+        RadarColor = Color.Red;
+        BulletColor = Color.Red;
+        ScanColor = Color.Red;
 
         SetTurnRadarRight(double.PositiveInfinity);
         AdjustGunForBodyTurn = true;
@@ -121,6 +121,24 @@ public class Roar : Bot
             }
         }
 
+        // Appearance
+        if (moveDir == 1)
+        {
+            BodyColor = Color.Red;
+            TurretColor = Color.White;
+            RadarColor = Color.Red;
+            BulletColor = Color.Red;
+            ScanColor = Color.Red;
+        }
+        else
+        {
+            BodyColor = Color.Yellow;
+            TurretColor = Color.Red;
+            RadarColor = Color.Yellow;
+            BulletColor = Color.Yellow;
+            ScanColor = Color.Yellow;
+        }
+
         Console.WriteLine("myX: " + X + " myY: " + Y);
         Console.WriteLine("target x: " + x + " target y: " + y);
         Console.WriteLine("DistanceRemaining: " + DistanceRemaining);
@@ -130,12 +148,10 @@ public class Roar : Bot
 
 
         // Targetting
-        double dx = e.X - X;
-        double dy = e.Y - Y;
-        double firePower = 1;
+        double firePower = (Math.Sqrt(ArenaHeight * ArenaHeight + ArenaWidth * ArenaWidth)) / DistanceTo(e.X, e.Y) * 0.15;
         double bulletSpeed = CalcBulletSpeed(firePower);
         
-        double absBearing = Math.Atan2(dy, dx);
+        double absBearing = Math.Atan2(e.Y - Y, e.X - X);
         
         double enemyDir = e.Direction * Math.PI / 180.0;
         
