@@ -6,7 +6,7 @@ using Robocode.TankRoyale.BotApi.Events;
 // ------------------------------------------------------------------
 // Rawr
 // ------------------------------------------------------------------
-// Targetting: Linear Targteting
+// Targeting: Linear Targteting
 // Movement: Anti-Gravity
 // ------------------------------------------------------------------
 public class Rawr : Bot

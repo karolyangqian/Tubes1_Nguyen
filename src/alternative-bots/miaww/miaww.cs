@@ -6,7 +6,7 @@ using Robocode.TankRoyale.BotApi.Events;
 // ------------------------------------------------------------------
 // Miaww
 // ------------------------------------------------------------------
-// Targetting: Linear Targteting
+// Targeting: Linear Targteting
 // Movement: Random
 // ------------------------------------------------------------------
 public class Miaww : Bot

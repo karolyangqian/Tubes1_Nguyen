@@ -6,7 +6,7 @@ using Robocode.TankRoyale.BotApi.Events;
 // ------------------------------------------------------------------
 // Mooo
 // ------------------------------------------------------------------
-// Targetting: Naive
+// Targeting: Naive
 // Movement: Circle
 // ------------------------------------------------------------------
 public class Moooo : Bot

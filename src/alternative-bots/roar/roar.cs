@@ -6,7 +6,7 @@ using Robocode.TankRoyale.BotApi.Events;
 // ------------------------------------------------------------------
 // Roar
 // ------------------------------------------------------------------
-// Targetting: Play It Forward
+// Targeting: Play It Forward
 // Movement: Corner 
 // ------------------------------------------------------------------
 public class Roar : Bot
@@ -147,7 +147,7 @@ public class Roar : Bot
         SetForward(moveDir * DistanceTo(x, y));
 
 
-        // Targetting
+        // Targeting
         double firePower = (Math.Sqrt(ArenaHeight * ArenaHeight + ArenaWidth * ArenaWidth)) / DistanceTo(e.X, e.Y) * 0.15;
         double bulletSpeed = CalcBulletSpeed(firePower);
         
