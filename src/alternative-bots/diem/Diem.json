@@ -1,0 +1,10 @@
+{
+  "name": "Diem",
+  "version": "1.0",
+  "authors": ["Diem-nguyen"],
+  "description": "",
+  "homepage": "",
+  "countryCodes": ["id"],
+  "platform": ".Net 9.0",
+  "programmingLang": "C# 10.0"
+}

@@ -18,8 +18,6 @@ public class Rawr : Bot
 
     Rawr() : base(BotInfo.FromFile("rawr.json")) { }
 
-    static int      lastTargetId;
-    static double   lastDistance = double.PositiveInfinity;
     static bool     movingForward;
 
     public override void Run()
@@ -44,7 +42,7 @@ public class Rawr : Bot
         double dx = e.X - X;
         double dy = e.Y - Y;
         double distance = DistanceTo(e.X, e.Y);
-        double firePower = EnemyCount;
+        double firePower = 1;
         double bulletSpeed = CalcBulletSpeed(firePower);
         
         double absBearing = Math.Atan2(dy, dx);
@@ -62,26 +60,20 @@ public class Rawr : Bot
         double predictedY = e.Y + e.Speed * time * Math.Sin(enemyDir);
         
         double bearingFromGun = GunBearingTo(predictedX, predictedY);
+
+        TurnGunLeft(bearingFromGun);
+        Fire(firePower);
         
-
-        if (lastTargetId == e.ScannedBotId) {
-            SetTurnGunLeft(bearingFromGun);
-            SetFire(firePower);
-            lastDistance = double.PositiveInfinity;
-        }
-
-        // SetFire(firePower);
-
-        if (lastDistance > distance) {
-            lastDistance = distance;
-            lastTargetId = e.ScannedBotId;
-        }
-        
+        // Movement
         SetTurnRight(NormalizeRelativeAngle((
         Math.Atan2((-5 * Math.Sin(absBearing) / distance) + 1/X - 1/(ArenaWidth - X),
                    (-5 * Math.Cos(absBearing) / distance) + 1/Y - 1/(ArenaHeight - Y))
-                    - (Direction * Math.PI / 180)) * 180 / Math.PI + 90));
-        // SetTurnRight(NormalizeRelativeAngle(BearingTo(predictedX, predictedY) + 90));
+                    - (Direction * Math.PI / 180)) * 180 / Math.PI));
+
+        Console.WriteLine("\nGravity: " + (NormalizeRelativeAngle((
+        Math.Atan2((-5 * Math.Sin(absBearing) / distance) + 1/X - 1/(ArenaWidth - X),
+                   (-5 * Math.Cos(absBearing) / distance) + 1/Y - 1/(ArenaHeight - Y))
+                    - (Direction * Math.PI / 180)) * 180 / Math.PI)) * Math.PI / 180);
 
         if (movingForward) {
             SetForward(double.PositiveInfinity);
@@ -94,13 +86,15 @@ public class Rawr : Bot
             SetTurnRadarRight(RadarTurnRemaining);
         }
 
-        Console.WriteLine("distance: " + distance);
-        Console.WriteLine("TurnRemaining: " + TurnRemaining);
-        Console.WriteLine("GunHeat: " + GunHeat);
-        Console.WriteLine("RadarTurnRemaining: " + RadarTurnRemaining);
-        Console.WriteLine("MaxSpeed: " + MaxSpeed);
-        Console.WriteLine("Direction: " + Direction);
-        Console.WriteLine("X: " + X + " Y: " + Y);
+        
+
+        // Console.WriteLine("distance: " + distance);
+        // Console.WriteLine("TurnRemaining: " + TurnRemaining);
+        // Console.WriteLine("GunHeat: " + GunHeat);
+        // Console.WriteLine("RadarTurnRemaining: " + RadarTurnRemaining);
+        // Console.WriteLine("MaxSpeed: " + MaxSpeed);
+        // Console.WriteLine("Direction: " + Direction);
+        // Console.WriteLine("X: " + X + " Y: " + Y);
     }
 
     public override void OnHitWall(HitWallEvent e)
