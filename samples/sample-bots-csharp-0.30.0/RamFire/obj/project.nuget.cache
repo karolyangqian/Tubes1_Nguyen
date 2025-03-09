@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "SFrwY44uscA=",
+  "dgSpecHash": "6JIGnrvyBHE=",
   "success": true,
-  "projectFilePath": "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\RamFire\\RamFire.csproj",
+  "projectFilePath": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\RamFire\\RamFire.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\judhi\\.nuget\\packages\\microsoft.build.locator\\1.7.8\\microsoft.build.locator.1.7.8.nupkg.sha512",
     "C:\\Users\\judhi\\.nuget\\packages\\microsoft.extensions.configuration\\8.0.0\\microsoft.extensions.configuration.8.0.0.nupkg.sha512",

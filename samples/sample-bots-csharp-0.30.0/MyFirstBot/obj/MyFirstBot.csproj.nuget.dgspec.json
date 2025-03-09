@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\MyFirstBot\\MyFirstBot.csproj": {}
+    "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\MyFirstBot\\MyFirstBot.csproj": {}
   },
   "projects": {
-    "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\MyFirstBot\\MyFirstBot.csproj": {
+    "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\MyFirstBot\\MyFirstBot.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\MyFirstBot\\MyFirstBot.csproj",
+        "projectUniqueName": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\MyFirstBot\\MyFirstBot.csproj",
         "projectName": "MyFirstBot",
-        "projectPath": "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\MyFirstBot\\MyFirstBot.csproj",
+        "projectPath": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\MyFirstBot\\MyFirstBot.csproj",
         "packagesPath": "C:\\Users\\judhi\\.nuget\\packages\\",
-        "outputPath": "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\MyFirstBot\\obj\\",
+        "outputPath": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\MyFirstBot\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\judhi\\AppData\\Roaming\\NuGet\\NuGet.Config"

@@ -926,19 +926,19 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\Karol\\.nuget\\packages\\": {}
+    "C:\\Users\\judhi\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Karol\\ITB\\Teknik-Informatika\\semester_4\\IF2211_StrategiAlgoritma\\tubes 1\\TemplateBot\\TemplateBot.csproj",
+      "projectUniqueName": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\TemplateBot\\TemplateBot.csproj",
       "projectName": "TemplateBot",
-      "projectPath": "C:\\Users\\Karol\\ITB\\Teknik-Informatika\\semester_4\\IF2211_StrategiAlgoritma\\tubes 1\\TemplateBot\\TemplateBot.csproj",
-      "packagesPath": "C:\\Users\\Karol\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Karol\\ITB\\Teknik-Informatika\\semester_4\\IF2211_StrategiAlgoritma\\tubes 1\\TemplateBot\\obj\\",
+      "projectPath": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\TemplateBot\\TemplateBot.csproj",
+      "packagesPath": "C:\\Users\\judhi\\.nuget\\packages\\",
+      "outputPath": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\TemplateBot\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\Karol\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\judhi\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net6.0"

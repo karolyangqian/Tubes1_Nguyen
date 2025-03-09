@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\PaintingBot\\PaintingBot.csproj": {}
+    "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\PaintingBot\\PaintingBot.csproj": {}
   },
   "projects": {
-    "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\PaintingBot\\PaintingBot.csproj": {
+    "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\PaintingBot\\PaintingBot.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\PaintingBot\\PaintingBot.csproj",
+        "projectUniqueName": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\PaintingBot\\PaintingBot.csproj",
         "projectName": "PaintingBot",
-        "projectPath": "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\PaintingBot\\PaintingBot.csproj",
+        "projectPath": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\PaintingBot\\PaintingBot.csproj",
         "packagesPath": "C:\\Users\\judhi\\.nuget\\packages\\",
-        "outputPath": "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\PaintingBot\\obj\\",
+        "outputPath": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\PaintingBot\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\judhi\\AppData\\Roaming\\NuGet\\NuGet.Config"

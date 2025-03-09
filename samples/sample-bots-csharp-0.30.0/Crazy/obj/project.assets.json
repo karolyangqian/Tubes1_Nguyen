@@ -818,19 +818,19 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\Karol\\.nuget\\packages\\": {}
+    "C:\\Users\\judhi\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Karol\\ITB\\Teknik-Informatika\\semester_4\\IF2211_StrategiAlgoritma\\tubes 1\\sample-bots-csharp-0.30.0\\Crazy\\Crazy.csproj",
+      "projectUniqueName": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Crazy\\Crazy.csproj",
       "projectName": "Crazy",
-      "projectPath": "C:\\Users\\Karol\\ITB\\Teknik-Informatika\\semester_4\\IF2211_StrategiAlgoritma\\tubes 1\\sample-bots-csharp-0.30.0\\Crazy\\Crazy.csproj",
-      "packagesPath": "C:\\Users\\Karol\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Karol\\ITB\\Teknik-Informatika\\semester_4\\IF2211_StrategiAlgoritma\\tubes 1\\sample-bots-csharp-0.30.0\\Crazy\\obj\\",
+      "projectPath": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Crazy\\Crazy.csproj",
+      "packagesPath": "C:\\Users\\judhi\\.nuget\\packages\\",
+      "outputPath": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Crazy\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\Karol\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\judhi\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net9.0"

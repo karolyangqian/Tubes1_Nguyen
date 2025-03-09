@@ -11,7 +11,7 @@ public class Schtinky : Bot
     private double scannedEnemySpeed;
     private double scannedEnemyDirection;
     private double scannedEnemyGunDirection;
-    private bool enemyDeteced = false;
+    private bool enemyDetected = false;
     private bool enemyEnergyDrop = false;
     private double scannedPrevEnergy = 100;
     private double scannedCurrEnergy = 0;
@@ -46,22 +46,17 @@ public class Schtinky : Bot
             }
             if (enemyEnergyDrop) {
                 // Movement dodging
-                double turnAngle = WaveSurf(rhis.X, this.Y, this.RadarDirection, this.Direction);
+                double turnAngle = WaveSurf(this.X, this.Y, this.RadarDirection - 180, this.Direction);
 
                 if (turnAngle > 90 || turnAngle < -90) {
                     SetTurnRight(180 - turnAngle);
-                    SetBack(10);
+                    SetBack(100);
                 } else {
-                    setTurnRight(turnAngle);
-                    setForward(10);
+                    SetTurnRight(turnAngle);
+                    SetForward(100);
                 }
                 enemyEnergyDrop = false;
             }
-            SetTurnLeft(10);
-            // Limit our speed to 5
-            MaxSpeed = 5;
-            // Start moving (and turning)
-            SetForward(10);
         }
     }
 
@@ -74,8 +69,7 @@ public override void OnScannedBot(ScannedBotEvent e)
         scannedCurrEnergy = e.Energy;
         scannedEnemySpeed = e.Speed;
         scannedEnemyDirection = e.Direction;
-        scannedEnemyGunDirection = e.GunDirection;
-        enemyDeteced = true;
+        enemyDetected = true;
         if (scannedCurrEnergy < scannedPrevEnergy) {
             enemyEnergyDrop = true;
         }
@@ -88,7 +82,7 @@ public override void OnScannedBot(ScannedBotEvent e)
         Params:
         - coordX: koordinat X robot ini
         - coordY: koordinat Y robot ini
-        - enemyHeading: arah musuh dalam derajat (gunakan arah radar - 180 derajat)
+        - enemyHeading: arah musuh dalam derajat 
         - botHeading: arah robot ini dalam derajat
      */
     private double WaveSurf(double coordX, double coordY, double enemyHeading, double botHeading) {
@@ -110,13 +104,10 @@ public override void OnScannedBot(ScannedBotEvent e)
         double dY = safeY - coordY;
         double angle = Math.Atan2(dY, dX);
 
-        double turnAngle = NormalizeBearing(Math.ToDegrees(angle) - botHeading);
+        double turnAngle = NormalizeBearing((angle * (180.0 / Math.PI)) - botHeading);
 
         return turnAngle;
     }
-
-
-
 
     private void TrackScanAt(double x, double y) {
         var bearingFromRadar = RadarBearingTo(x, y);

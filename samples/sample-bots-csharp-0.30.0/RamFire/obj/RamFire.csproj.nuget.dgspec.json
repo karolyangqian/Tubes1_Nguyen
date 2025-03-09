@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\RamFire\\RamFire.csproj": {}
+    "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\RamFire\\RamFire.csproj": {}
   },
   "projects": {
-    "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\RamFire\\RamFire.csproj": {
+    "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\RamFire\\RamFire.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\RamFire\\RamFire.csproj",
+        "projectUniqueName": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\RamFire\\RamFire.csproj",
         "projectName": "RamFire",
-        "projectPath": "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\RamFire\\RamFire.csproj",
+        "projectPath": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\RamFire\\RamFire.csproj",
         "packagesPath": "C:\\Users\\judhi\\.nuget\\packages\\",
-        "outputPath": "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\RamFire\\obj\\",
+        "outputPath": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\RamFire\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\judhi\\AppData\\Roaming\\NuGet\\NuGet.Config"

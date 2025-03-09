@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\SpinBot\\SpinBot.csproj": {}
+    "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\SpinBot\\SpinBot.csproj": {}
   },
   "projects": {
-    "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\SpinBot\\SpinBot.csproj": {
+    "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\SpinBot\\SpinBot.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\SpinBot\\SpinBot.csproj",
+        "projectUniqueName": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\SpinBot\\SpinBot.csproj",
         "projectName": "SpinBot",
-        "projectPath": "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\SpinBot\\SpinBot.csproj",
+        "projectPath": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\SpinBot\\SpinBot.csproj",
         "packagesPath": "C:\\Users\\judhi\\.nuget\\packages\\",
-        "outputPath": "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\SpinBot\\obj\\",
+        "outputPath": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\SpinBot\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\judhi\\AppData\\Roaming\\NuGet\\NuGet.Config"

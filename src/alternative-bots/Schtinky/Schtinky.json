@@ -1,10 +1,12 @@
 {
   "name": "Schtinky",
   "version": "1.0",
-  "authors": ["Tukang Las"],
+  "authors": ["Ahmad Ibrahim",
+    "Karol Yangqian P",
+    "Aria Judhistira"],
   "description": "Schtinky 1.0",
   "homepage": "",
   "countryCodes": ["id"],
   "platform": ".Net 9.0",
-  "programmingLang": "C# 10.0"
+  "programmingLang": "C# 13.0"
 }

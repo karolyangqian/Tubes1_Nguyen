@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Walls\\Walls.csproj": {}
+    "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Walls\\Walls.csproj": {}
   },
   "projects": {
-    "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Walls\\Walls.csproj": {
+    "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Walls\\Walls.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Walls\\Walls.csproj",
+        "projectUniqueName": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Walls\\Walls.csproj",
         "projectName": "Walls",
-        "projectPath": "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Walls\\Walls.csproj",
+        "projectPath": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Walls\\Walls.csproj",
         "packagesPath": "C:\\Users\\judhi\\.nuget\\packages\\",
-        "outputPath": "c:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Walls\\obj\\",
+        "outputPath": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Walls\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\judhi\\AppData\\Roaming\\NuGet\\NuGet.Config"
