@@ -35,9 +35,9 @@ public class Ahhhhh : Bot
     {
         Console.WriteLine("Hello! I'm Ahhhhh!");
         
-        BodyColor = Color.Red;
-        TurretColor = Color.White;
-        RadarColor = Color.Red;
+        BodyColor = Color.Pink;
+        TurretColor = Color.Red;
+        RadarColor = Color.Pink;
         BulletColor = Color.Red;
         ScanColor = Color.Red;
 
@@ -53,7 +53,7 @@ public class Ahhhhh : Bot
         {
             if (enemyDetected) {
                 TrackScanAt(scannedEnemyX, scannedEnemyY);
-                ShootPredict(scannedEnemyX, scannedEnemyY, scannedEnemySpeed, scannedEnemyDirection, CalculateFirePower(scannedEnemyX, scannedEnemyY));
+                ShootPredict(scannedEnemyX, scannedEnemyY, scannedEnemySpeed, scannedEnemyDirection, (Math.Sqrt(ArenaHeight * ArenaHeight + ArenaWidth * ArenaWidth)) / DistanceTo(scannedEnemyX, scannedEnemyY) * 0.15);
                 enemyDetected = false;
             } else {
                 TurnRadarLeft(20);
@@ -106,12 +106,5 @@ public class Ahhhhh : Bot
         
         TurnGunLeft(bearingFromGun);
         Fire(firePower);
-    }
-
-    private double CalculateFirePower(double targetX, double targetY) {
-        double dist = DistanceTo(targetX, targetY);
-        dist = dist > MAX_SHOOT_RANGE_THRESH ? MAX_SHOOT_RANGE_THRESH : dist;
-        double val = (MAX_SHOOT_RANGE_THRESH - dist) / MAX_SHOOT_RANGE_THRESH;
-        return 1 + 2 * val;
     }
 }
