@@ -10,12 +10,13 @@ public class Schtinky : Bot
     private double scannedEnemyY;
     private double scannedEnemySpeed;
     private double scannedEnemyDirection;
-    private double scannedEnemyGunDirection;
     private bool enemyDetected = false;
     private bool enemyEnergyDrop = false;
     private double scannedPrevEnergy = 100;
     private double scannedCurrEnergy = 0;
-    /* A bot that drives forward and backward, and fires a bullet */
+    private bool isGoingLeft = false;
+    private double firePower = 0;
+
     static void Main(string[] args)
     {
         new Schtinky().Start();
@@ -38,31 +39,56 @@ public class Schtinky : Bot
         while (IsRunning)
         {
             if (enemyDetected) {
+                firePower = CalculateFirePower(scannedEnemyX, scannedEnemyY);
                 TrackScanAt(scannedEnemyX, scannedEnemyY);
-                ShootPredict(scannedEnemyX, scannedEnemyY, scannedEnemySpeed, scannedEnemyDirection, CalculateFirePower(scannedEnemyX, scannedEnemyY));
+                ShootPredict(scannedEnemyX, scannedEnemyY, scannedEnemySpeed, scannedEnemyDirection, firePower);
                 enemyDetected = false;
             } else {
                 TurnRadarLeft(20);
             }
             if (enemyEnergyDrop) {
                 // Movement dodging
-                double turnAngle = WaveSurf(this.X, this.Y, this.RadarDirection - 180, this.Direction);
+                isGoingLeft = false;
+                double angleEnemy = angleTo(scannedEnemyX, scannedEnemyY) - 180;
+                double turnAngle = ReactEnemyShoot(this.X, this.Y, angleEnemy, this.Direction);
 
                 if (turnAngle > 90 || turnAngle < -90) {
-                    SetTurnRight(180 - turnAngle);
+                    if (turnAngle > 90) {
+                        isGoingLeft = true;
+                        SetTurnLeft(180 - turnAngle);
+                        SetTurnRadarLeft(10);
+                    } else {
+                        SetTurnRight(180 + turnAngle);
+                        SetTurnRadarRight(10);
+                    }
                     SetBack(100);
                 } else {
+                    if (turnAngle < 0) {
+                        isGoingLeft = true;
+                        SetTurnRadarRight(10);
+                    } else SetTurnRadarLeft(10);
                     SetTurnRight(turnAngle);
                     SetForward(100);
                 }
                 enemyEnergyDrop = false;
-            }
+            } 
+            // else {
+            //     if (!isGoingLeft) {
+            //         SetTurnLeft(3);
+            //         SetForward(50);
+            //         isGoingLeft = true;
+            //     } else {
+            //         SetTurnRight(3);
+            //         SetForward(50);
+            //         isGoingLeft = false;
+            //     }
+            // }
         }
     }
 
 /* ================================= Event Handler ================================= */
 
-public override void OnScannedBot(ScannedBotEvent e)
+    public override void OnScannedBot(ScannedBotEvent e)
     {
         scannedEnemyX = e.X;
         scannedEnemyY = e.Y;
@@ -76,27 +102,42 @@ public override void OnScannedBot(ScannedBotEvent e)
         scannedPrevEnergy = scannedCurrEnergy;
     }
 
-/* ================================= Methods ================================= */
+    public override void OnHitWall(HitWallEvent botHitWallEvent)
+    {
+        SetBack(100);
+        SetTurnRight(90);
+    }
+
+    // public override void OnHitBot(HitBotEvent botHitBotEvent)
+    // {
+    //     if (botHitBotEvent.IsRammed) {
+    //         SetBack(100);
+    //         SetTurnRight(90);
+    //     }
+    // }
+
+    /* ================================= Methods ================================= */
 
     /*
         Params:
         - coordX: koordinat X robot ini
         - coordY: koordinat Y robot ini
-        - enemyHeading: arah musuh dalam derajat 
+        - enemyHeading: arah musuh dalam derajat
         - botHeading: arah robot ini dalam derajat
      */
-    private double WaveSurf(double coordX, double coordY, double enemyHeading, double botHeading) {
+    private double ReactEnemyShoot(double coordX, double coordY, double enemyHeading, double botHeading) {
         double enemyDistance = GetEnemyDistance(scannedEnemyX, scannedEnemyY);
         double enemyBulletSpeed = CalcBulletSpeed(scannedPrevEnergy - scannedCurrEnergy);
         double enemyBulletTime = enemyDistance / enemyBulletSpeed;
 
+        // enemyHeading harusnya dalam radian, arah musuh dalam derajat, bukan arah radar 
         double enemyDirection = enemyHeading * Math.PI / 180.0; // konversi ke radian
 
         // Prediksi peluru musuh
         double predictedBulletX = scannedEnemyX + Math.Sin(enemyDirection) * enemyBulletTime * enemyBulletSpeed;
         double predictedBulletY = scannedEnemyY + Math.Cos(enemyDirection) * enemyBulletTime * enemyBulletSpeed;
 
-        double safeFromEnemyBullet = enemyHeading + 90 * Math.PI / 180.0; // tegak lurus terhadap arah peluru
+        double safeFromEnemyBullet = (enemyHeading + 90) * Math.PI / 180.0; // tegak lurus terhadap arah peluru
         double safeX = coordX + Math.Sin(safeFromEnemyBullet) * 100;
         double safeY = coordY + Math.Cos(safeFromEnemyBullet) * 100;
 
@@ -115,25 +156,7 @@ public override void OnScannedBot(ScannedBotEvent e)
         bearingFromRadar = RadarBearingTo(x, y);
         TurnRadarLeft(bearingFromRadar - 10);
     }
-
-    private void TrackScanWithGunAt(double x, double y) {
-        AdjustRadarForGunTurn = false;
-        var bearingFromGun = GunBearingTo(x, y);
-        TurnGunLeft(bearingFromGun + 10);
-        bearingFromGun = RadarBearingTo(x, y);
-        TurnGunLeft(bearingFromGun - 10);
-    }
-
-    private void AimGunAt(double x, double y, double degreesMaxOffset) {
-        var bearingFromGun = GunBearingTo(x, y);
-        var rnd = new Random();
-        TurnGunLeft(bearingFromGun + GetRandomSign()*rnd.NextDouble()*degreesMaxOffset);
-    }
-
-    private void ShootAt(double x, double y, double power, double degreesMaxOffset) {
-        AimGunAt(x, y, degreesMaxOffset);
-        Fire(power);
-    }
+    
 
     private void ShootPredict(double targetX, double targetY, double targetSpeed, double targetDirection, double firePower) {
         double bulletSpeed = CalcBulletSpeed(firePower);
@@ -175,6 +198,16 @@ public override void OnScannedBot(ScannedBotEvent e)
         while (angle >  180) angle -= 360;
         while (angle < -180) angle += 360;
         return angle;
+    }
+
+    private double angleTo(double X, double Y) {
+        double dX = X - this.X;
+        double dY = Y - this.Y;
+
+        double angleRadian = Math.Atan2(dX, dY);
+        double angleDegree = angleRadian * 180 / Math.PI;
+
+        return NormalizeBearing(angleDegree);
     }
 
     private double DegreesToRadians(double degrees) {
