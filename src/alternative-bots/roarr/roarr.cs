@@ -6,26 +6,29 @@ using Robocode.TankRoyale.BotApi.Events;
 // ------------------------------------------------------------------
 // Roarr
 // ------------------------------------------------------------------
-// Targetting: Play It Forward
-// Movement: Minimum Risk Movement
+// Targeting: Play It Forward
+// Movement: Corner 
+// ------------------------------------------------------------------
+/*
+
+
+*/
 // ------------------------------------------------------------------
 public class Roarr : Bot
 {
     // Constants
-    static double FIELD_WIDTH = 800;
-    static double FIELD_HEIGHT = 600;
     static double AIM_WALL_MARGIN = 17.5;
     static int MOVE_WALL_MARGIN = 25;
     static int FIRE_ANGLES = 1000;
     static int TABLE_SIZE = 126;
     static int OPPONENT_HASHES = 256;
 
-    // Aiming data 
+    // Aim data
     static int[,,] markovTransitionTable = new int[OPPONENT_HASHES,579,TABLE_SIZE + 1];
-    
+
     // Opponent data
     static int targetId;
-    static double targetDistance;
+    static double targetDistance = double.PositiveInfinity;
     static double targetVelocity;
     static double targetHeading;
     static int targetMarkovState;
@@ -33,8 +36,8 @@ public class Roarr : Bot
     // Our data
     static double myX;
     static double myY;
-    static bool moveDir = true;
-    
+    static int moveDir = 1;
+
     static void Main()
     {
         new Roarr().Start();
@@ -47,145 +50,84 @@ public class Roarr : Bot
         Console.WriteLine("Hello! I'm Roarr!");
         
         BodyColor = Color.Red;
-        TurretColor = Color.Red;
-        RadarColor = Color.Black;
-        BulletColor = Color.Black;
+        TurretColor = Color.Yellow;
+        RadarColor = Color.Red;
+        BulletColor = Color.Red;
         ScanColor = Color.Black;
 
-        TurnRadarRight(double.PositiveInfinity);
+        SetTurnRadarRight(double.PositiveInfinity);
         AdjustGunForBodyTurn = true;
-    }
 
-    public override void OnTick(TickEvent e)
-    {
-        int x = MOVE_WALL_MARGIN + 30 + (int) (targetDistance / 2.5);
+    public override void OnTick(TickEvent e) {
+        // Console.WriteLine("GunHeat: " + GunHeat + " Energy: " + Energy);
+
+        // Corner Movement
+        int x = MOVE_WALL_MARGIN + (int) (targetDistance / 2.7);
         int y = MOVE_WALL_MARGIN;
 
-        if (DistanceRemaining == 0) {
-            moveDir = !moveDir;
+        if (DistanceRemaining == 0) 
+        {
+            moveDir = -moveDir;
         }
 
-        if (moveDir) {
+        if (moveDir > 0) 
+        {
             y = x;
             x = MOVE_WALL_MARGIN;
         }
 
-        if ((myX = X) > FIELD_WIDTH / 2) {
-            x = (int) FIELD_WIDTH - x;
+        if (X > ArenaWidth / 2)
+        {
+            x = (int) (ArenaWidth - x);
         }
 
-        if ((myY = Y) > FIELD_HEIGHT / 2) {
-            y = (int) FIELD_HEIGHT - y;
+        if (Y > ArenaHeight / 2)
+        {
+            y = (int) (ArenaHeight - y);
         }
 
-        TurnRight(NormalizeRelativeAngle(CalcBearing(DirectionTo(x, y))));
-        Forward(DistanceTo(x, y));
+        targetDistance = DistanceTo(e.X, e.Y);
+        SetTurnLeft(180 / Math.PI * Math.Tan(turn));
+        SetForward(DistanceTo(x, y) * Math.Cos(turn));
     }
 
-    public override void OnScannedBot(ScannedBotEvent e)
-    { 
-        int id = e.ScannedBotId;
-        int[] aimBins = new int[FIRE_ANGLES];
-        double opponentVelocity = e.Speed;
-        double distance = DistanceTo(e.X, e.Y);
-        double absBearing = (Direction + e.Direction) * Math.PI / 180;
+    public override void OnScannedBot(ScannedBotEvent e) {
 
-        // Check if we should target this opponent
-        if (distance < targetDistance || targetId == id) {
-            targetId = id;
-
-            // Radar lock
-            if (GunHeat < 1) {
-                SetTurnRadarRight(double.PositiveInfinity * NormalizeRelativeAngle(absBearing - (RadarDirection * Math.PI / 180)));
-            }
-
-            // Fire
-            double bulletPower = Math.Log10(Energy * 325 / (targetDistance = distance));
-            if (bulletPower > 0 && GunTurnRemaining == 0) {
-                SetFire(bulletPower);
-            }
-
-            // Aim
-            int state = Math.Sign(
-                (opponentVelocity = e.Speed) - targetVelocity) + 1 + // acceleration
-                ((int) (8.5 + opponentVelocity) << 2) + // velocity
-                (((int) (-2 * NormalizeRelativeAngle( // delta heading
-                    targetHeading - (targetHeading = e.Direction * Math.PI / 180)) /
-                    CalcMaxTurnRate(targetVelocity) + 2.5)) << 7);
-                
-            try {
-                int[,] table = new int[579, TABLE_SIZE + 1];
-                for (int k = 0; k < 579; k++) {
-                    for (int j = 0; j <= TABLE_SIZE; j++) {
-                        table[k, j] = markovTransitionTable[e.ScannedBotId, k, j];
-                    }
-                }
-                int bestBin = 0;
-                int i = 0;
-                do {
-                    double predictedX = myX + Math.Sin(absBearing) * distance;
-                    double predictedY = myY + Math.Cos(absBearing) * distance;
-                    id = state;
-                    int ticks = 1;
-                    double h = targetHeading;
-                    double v = opponentVelocity;
-                    int weight = 100;
-                    do {
-                        // Sample a random next state and play forward the movement
-                        int tableSize = Math.Min(TABLE_SIZE, table[id, TABLE_SIZE]);
-                        if (tableSize != 0) {
-                            id = table[id, (int) (new Random().NextDouble() * tableSize)];
-                        } else {
-                            weight = 5;
-                        }
-                        RectangleF arena = new RectangleF((float) AIM_WALL_MARGIN, (float) AIM_WALL_MARGIN,
-                                  (float) (FIELD_WIDTH - 2 * AIM_WALL_MARGIN), (float) (FIELD_HEIGHT - 2 * AIM_WALL_MARGIN));
-                        if (!arena.Contains(
-                            (float) (predictedX += Math.Sin(h += ((id >> 7) - 2) * CalcMaxTurnRate(v) / 2 * Math.PI / 180) *
-                                (v = ((id >> 2) & 31) - 8)),
-                            (float) (predictedY += Math.Cos(h) * v))) {
-                                weight = 1;
-                        }
-                    } while (++ticks * CalcBulletSpeed(bulletPower) < DistanceTo(predictedX, predictedY));
-
-                    id = -4;
-                    int b;
-                    do {
-                        b = ((int)(FIRE_ANGLES * absoluteBearing(predictedX, predictedY) / (2 * Math.PI)) + id + FIRE_ANGLES) % FIRE_ANGLES;
-                        
-                        aimBins[b] += weight + 1 / (Math.Abs(id) + 1);
-                        
-                        if (aimBins[b] > aimBins[bestBin]) {
-                            bestBin = b;
-                        }
-                    } while (++id <= 4);
-                } while (++i < 127);
-
-                SetTurnGunRight(NormalizeRelativeAngle(
-                    (2 * Math.PI * bestBin / FIRE_ANGLES - (GunDirection * Math.PI / 180)) * 180 / Math.PI));
-
-                // Update aiming data
-                if (GunHeat < 0.7) {
-                    for (int j = 0; j < TABLE_SIZE + 1; j++)
-                        aimBins[j] = table[targetMarkovState, j];
-                    aimBins[aimBins[TABLE_SIZE]++] = state;
-                }
-            } catch (Exception ex) {
-                Console.WriteLine(ex);
-            }
-
-            // Update opponent ingfo
-            targetMarkovState = state;
-            targetVelocity = opponentVelocity;
+        if (GunHeat < 1) 
+        {
+            SetTurnRadarLeft(double.PositiveInfinity * NormalizeRelativeAngle(RadarBearingTo(e.X, e.Y)));
         }
+
+        // Targeting
+        double firePower = (Math.Sqrt(ArenaHeight * ArenaHeight + ArenaWidth * ArenaWidth)) / DistanceTo(e.X, e.Y) * 0.3;
+
+        if (GunTurnRemaining == 0)
+        {
+            SetFire(firePower);
+        }
+
+        double bulletSpeed = CalcBulletSpeed(firePower);
+        
+        double absBearing = Math.Atan2(e.Y - Y, e.X - X);
+        
+        double enemyDir = e.Direction * Math.PI / 180.0;
+        
+        double ratio = Math.Max(-1, Math.Min(1, (e.Speed * Math.Sin(enemyDir - absBearing)) / bulletSpeed));
+        
+        double gunDirection = absBearing + Math.Asin(ratio);
+        
+        double time = DistanceTo(e.X, e.Y) / bulletSpeed;
+        
+        double predictedX = e.X + e.Speed * time * Math.Cos(enemyDir);
+        double predictedY = e.Y + e.Speed * time * Math.Sin(enemyDir);
+        
+        double bearingFromGun = GunBearingTo(predictedX, predictedY);
+
+        SetTurnGunLeft(bearingFromGun);
     }
 
     public override void OnBotDeath(BotDeathEvent e)
     {
         SetTurnRadarRight(targetDistance = double.PositiveInfinity);
-    }
-
-    private static double absoluteBearing(double targetX, double targetY) {
-        return Math.Atan2(targetX - myX, targetY - myY);
     }
 }

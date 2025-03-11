@@ -27,8 +27,6 @@ public class Roar : Bot
     static int moveDir = 1;
     static double enemyDistance = double.PositiveInfinity;
 
-    static double gradient;
-    
     static void Main()
     {
         new Roar().Start();
@@ -48,7 +46,6 @@ public class Roar : Bot
 
         SetTurnRadarRight(double.PositiveInfinity);
         AdjustGunForBodyTurn = true;
-        gradient = (double) ArenaHeight / ArenaWidth;
     } 
 
     public override void OnTick(TickEvent e) {
@@ -122,9 +119,11 @@ public class Roar : Bot
         // Console.WriteLine("target x: " + x + " target y: " + y);
         // Console.WriteLine("DistanceRemaining: " + DistanceRemaining);
 
-        if (GunHeat < 1) 
+        double radarAngle = double.PositiveInfinity * NormalizeRelativeAngle(RadarBearingTo(e.X, e.Y));
+
+        if (!double.IsNaN(radarAngle) && (GunHeat < 1 || EnemyCount == 1)) 
         {
-            SetTurnRadarLeft(double.PositiveInfinity * NormalizeRelativeAngle(RadarBearingTo(e.X, e.Y)));
+            SetTurnRadarLeft(radarAngle);
         }
 
         // Targeting
