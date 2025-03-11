@@ -6,12 +6,13 @@ using Robocode.TankRoyale.BotApi.Events;
 // ------------------------------------------------------------------
 // Roar
 // ------------------------------------------------------------------
-// Targeting: Play It Forward
+// v1.1
+// Targeting: Linear
 // Movement: Corner 
 // ------------------------------------------------------------------
 public class Roar : Bot
 {
-    static int MOVE_WALL_MARGIN = 25;
+    static int MOVE_WALL_MARGIN = 20;
 
     static int moveDir = 1;
 
@@ -39,6 +40,10 @@ public class Roar : Bot
         gradient = (double) ArenaHeight / ArenaWidth;
     } 
 
+    public override void OnTick(TickEvent e) {
+        Console.WriteLine("GunHeat: " + GunHeat + " Energy: " + Energy);
+    }
+
     public override void OnScannedBot(ScannedBotEvent e) {
         // Console.WriteLine("\nI see a bot!");
         // Console.WriteLine("Id       : " + e.ScannedBotId);
@@ -58,7 +63,7 @@ public class Roar : Bot
             {
                 Console.WriteLine("\n 1");
                 moveDir = 1;
-                x = ArenaWidth / 4;
+                x = ArenaWidth / 4 + (int) DistanceTo(e.X, e.Y);
                 y = MOVE_WALL_MARGIN;
             }
             else
@@ -66,7 +71,7 @@ public class Roar : Bot
                 Console.WriteLine("\n 2");
                 moveDir = -1;
                 x = MOVE_WALL_MARGIN;
-                y = ArenaHeight / 4;
+                y = ArenaHeight / 4 + (int) DistanceTo(e.X, e.Y);
             }
         }
         else if (X * 2 < ArenaWidth && Y * 2 > ArenaHeight)
@@ -76,13 +81,13 @@ public class Roar : Bot
                 Console.WriteLine("\n 3");
                 moveDir = -1;
                 x = MOVE_WALL_MARGIN;
-                y = ArenaHeight * 3 / 4;
+                y = ArenaHeight * 3 / 4 - (int) DistanceTo(e.X, e.Y);
             }
             else
             {
                 Console.WriteLine("\n 4");
                 moveDir = 1;
-                x = ArenaWidth / 4;
+                x = ArenaWidth / 4 + (int) DistanceTo(e.X, e.Y);
                 y = ArenaHeight - MOVE_WALL_MARGIN;
             }
         }
@@ -92,7 +97,7 @@ public class Roar : Bot
             {
                 Console.WriteLine("\n 5");
                 moveDir = 1;
-                x = ArenaWidth * 3 / 4;
+                x = ArenaWidth * 3 / 4 - (int) DistanceTo(e.X, e.Y);
                 y = MOVE_WALL_MARGIN;
             }
             else
@@ -100,7 +105,7 @@ public class Roar : Bot
                 Console.WriteLine("\n 6");
                 moveDir = -1;
                 x = ArenaWidth - MOVE_WALL_MARGIN;
-                y = ArenaHeight / 4;
+                y = ArenaHeight / 4 + (int) DistanceTo(e.X, e.Y);
             }
         }
         else
@@ -110,13 +115,13 @@ public class Roar : Bot
                 Console.WriteLine("\n 7");
                 moveDir = 1;
                 x = ArenaWidth - MOVE_WALL_MARGIN;
-                y = ArenaHeight * 3 / 4;
+                y = ArenaHeight * 3 / 4 - (int) DistanceTo(e.X, e.Y);
             }
             else
             {
                 Console.WriteLine("\n 8");
                 moveDir = -1;
-                x = ArenaWidth * 3 / 4;
+                x = ArenaWidth * 3 / 4 - (int) DistanceTo(e.X, e.Y);
                 y = ArenaHeight - MOVE_WALL_MARGIN;
             }
         }
@@ -139,34 +144,39 @@ public class Roar : Bot
             ScanColor = Color.Yellow;
         }
 
-        Console.WriteLine("myX: " + X + " myY: " + Y);
-        Console.WriteLine("target x: " + x + " target y: " + y);
-        Console.WriteLine("DistanceRemaining: " + DistanceRemaining);
+        // Console.WriteLine("myX: " + X + " myY: " + Y);
+        // Console.WriteLine("target x: " + x + " target y: " + y);
+        // Console.WriteLine("DistanceRemaining: " + DistanceRemaining);
 
         SetTurnLeft(moveDir * NormalizeRelativeAngle(BearingTo(x, y)));
         SetForward(moveDir * DistanceTo(x, y));
 
 
-        // Targeting
-        double firePower = (Math.Sqrt(ArenaHeight * ArenaHeight + ArenaWidth * ArenaWidth)) / DistanceTo(e.X, e.Y) * 0.15;
-        double bulletSpeed = CalcBulletSpeed(firePower);
-        
-        double absBearing = Math.Atan2(e.Y - Y, e.X - X);
-        
-        double enemyDir = e.Direction * Math.PI / 180.0;
-        
-        double ratio = Math.Max(-1, Math.Min(1, (e.Speed * Math.Sin(enemyDir - absBearing)) / bulletSpeed));
-        
-        double gunDirection = absBearing + Math.Asin(ratio);
-        
-        double time = DistanceTo(e.X, e.Y) / bulletSpeed;
-        
-        double predictedX = e.X + e.Speed * time * Math.Cos(enemyDir);
-        double predictedY = e.Y + e.Speed * time * Math.Sin(enemyDir);
-        
-        double bearingFromGun = GunBearingTo(predictedX, predictedY);
+        SetTurnRadarLeft(NormalizeRelativeAngle(RadarBearingTo(e.X, e.Y)));
 
-        TurnGunLeft(bearingFromGun);
-        Fire(firePower);
+        // Targeting
+        if (GunHeat < 1) {
+            double firePower = (Math.Sqrt(ArenaHeight * ArenaHeight + ArenaWidth * ArenaWidth)) / DistanceTo(e.X, e.Y) * 0.15;
+            double bulletSpeed = CalcBulletSpeed(firePower);
+            
+            double absBearing = Math.Atan2(e.Y - Y, e.X - X);
+            
+            double enemyDir = e.Direction * Math.PI / 180.0;
+            
+            double ratio = Math.Max(-1, Math.Min(1, (e.Speed * Math.Sin(enemyDir - absBearing)) / bulletSpeed));
+            
+            double gunDirection = absBearing + Math.Asin(ratio);
+            
+            double time = DistanceTo(e.X, e.Y) / bulletSpeed;
+            
+            double predictedX = e.X + e.Speed * time * Math.Cos(enemyDir);
+            double predictedY = e.Y + e.Speed * time * Math.Sin(enemyDir);
+            
+            double bearingFromGun = GunBearingTo(predictedX, predictedY);
+
+
+            TurnGunLeft(bearingFromGun);
+            Fire(firePower);
+        }
     }
 }

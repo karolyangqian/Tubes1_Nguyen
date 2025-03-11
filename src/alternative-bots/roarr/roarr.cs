@@ -4,12 +4,12 @@ using Robocode.TankRoyale.BotApi;
 using Robocode.TankRoyale.BotApi.Events;
 
 // ------------------------------------------------------------------
-// Roar
+// Roarr
 // ------------------------------------------------------------------
 // Targetting: Play It Forward
 // Movement: Minimum Risk Movement
 // ------------------------------------------------------------------
-public class Roar : Bot
+public class Roarr : Bot
 {
     // Constants
     static double FIELD_WIDTH = 800;
@@ -37,14 +37,14 @@ public class Roar : Bot
     
     static void Main()
     {
-        new Roar().Start();
+        new Roarr().Start();
     }
 
-    Roar() : base(BotInfo.FromFile("roar.json")) { }
+    Roarr() : base(BotInfo.FromFile("roarr.json")) { }
 
     public override void Run()
     {
-        Console.WriteLine("Hello! I'm Roar!");
+        Console.WriteLine("Hello! I'm Roarr!");
         
         BodyColor = Color.Red;
         TurretColor = Color.Red;
