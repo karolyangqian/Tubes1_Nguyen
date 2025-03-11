@@ -15,13 +15,17 @@ v1.1
 - Add Radar Lock
 - Add enemy distance to movement
 
+v1.2 
+- Improve movement
+
 */
 // ------------------------------------------------------------------
 public class Roar : Bot
 {
-    static int MOVE_WALL_MARGIN = 20;
+    static int MOVE_WALL_MARGIN = 25;
 
     static int moveDir = 1;
+    static double enemyDistance = double.PositiveInfinity;
 
     static double gradient;
     
@@ -37,7 +41,7 @@ public class Roar : Bot
         Console.WriteLine("Hello! I'm Roar!");
         
         BodyColor = Color.Red;
-        TurretColor = Color.White;
+        TurretColor = Color.Yellow;
         RadarColor = Color.Red;
         BulletColor = Color.Red;
         ScanColor = Color.Red;
@@ -48,7 +52,40 @@ public class Roar : Bot
     } 
 
     public override void OnTick(TickEvent e) {
-        Console.WriteLine("GunHeat: " + GunHeat + " Energy: " + Energy);
+        // Console.WriteLine("GunHeat: " + GunHeat + " Energy: " + Energy);
+
+        // Corner Movement
+        int x = MOVE_WALL_MARGIN + (int) (enemyDistance / 2.7);
+        int y = MOVE_WALL_MARGIN;
+
+        if (DistanceRemaining == 0) 
+        {
+            moveDir = -moveDir;
+        }
+
+        if (moveDir > 0) 
+        {
+            y = x;
+            x = MOVE_WALL_MARGIN;
+        }
+
+        if (X > ArenaWidth / 2)
+        {
+            x = (int) (ArenaWidth - x);
+        }
+
+        if (Y > ArenaHeight / 2)
+        {
+            y = (int) (ArenaHeight - y);
+        }
+
+        double turn = BearingTo(x, y) * Math.PI / 180;
+        SetTurnLeft(180 / Math.PI * Math.Tan(turn));
+        SetForward(DistanceTo(x, y) * Math.Cos(turn));
+
+        // Console.WriteLine("X: " + X + " Y: " + Y);
+        // Console.WriteLine("Target X: " + x + " Target Y: " + y);
+        // Console.WriteLine("DistanceRemaining: " + DistanceRemaining);
     }
 
     public override void OnScannedBot(ScannedBotEvent e) {
@@ -61,83 +98,13 @@ public class Roar : Bot
         // Console.WriteLine("Y        : " + e.Y);
         // Console.WriteLine("Distance : " + DistanceTo(e.X, e.Y));
 
-        // Corner Movement
-        int x, y;
-        
-        if (X * 2 < ArenaWidth && Y * 2 < ArenaHeight)
-        {
-            if (Y > gradient * X)
-            {
-                Console.WriteLine("\n 1");
-                moveDir = 1;
-                x = ArenaWidth / 4 + (int) DistanceTo(e.X, e.Y);
-                y = MOVE_WALL_MARGIN;
-            }
-            else
-            {
-                Console.WriteLine("\n 2");
-                moveDir = -1;
-                x = MOVE_WALL_MARGIN;
-                y = ArenaHeight / 4 + (int) DistanceTo(e.X, e.Y);
-            }
-        }
-        else if (X * 2 < ArenaWidth && Y * 2 > ArenaHeight)
-        {
-            if (Y > ArenaHeight - gradient * X)
-            {
-                Console.WriteLine("\n 3");
-                moveDir = -1;
-                x = MOVE_WALL_MARGIN;
-                y = ArenaHeight * 3 / 4 - (int) DistanceTo(e.X, e.Y);
-            }
-            else
-            {
-                Console.WriteLine("\n 4");
-                moveDir = 1;
-                x = ArenaWidth / 4 + (int) DistanceTo(e.X, e.Y);
-                y = ArenaHeight - MOVE_WALL_MARGIN;
-            }
-        }
-        else if (X * 2 > ArenaWidth && Y * 2 < ArenaHeight)
-        {
-            if (Y > ArenaHeight - gradient * X)
-            {
-                Console.WriteLine("\n 5");
-                moveDir = 1;
-                x = ArenaWidth * 3 / 4 - (int) DistanceTo(e.X, e.Y);
-                y = MOVE_WALL_MARGIN;
-            }
-            else
-            {
-                Console.WriteLine("\n 6");
-                moveDir = -1;
-                x = ArenaWidth - MOVE_WALL_MARGIN;
-                y = ArenaHeight / 4 + (int) DistanceTo(e.X, e.Y);
-            }
-        }
-        else
-        {
-            if (Y > gradient * X)
-            {
-                Console.WriteLine("\n 7");
-                moveDir = 1;
-                x = ArenaWidth - MOVE_WALL_MARGIN;
-                y = ArenaHeight * 3 / 4 - (int) DistanceTo(e.X, e.Y);
-            }
-            else
-            {
-                Console.WriteLine("\n 8");
-                moveDir = -1;
-                x = ArenaWidth * 3 / 4 - (int) DistanceTo(e.X, e.Y);
-                y = ArenaHeight - MOVE_WALL_MARGIN;
-            }
-        }
+        enemyDistance = DistanceTo(e.X, e.Y);
 
         // Appearance
         if (moveDir == 1)
         {
             BodyColor = Color.Red;
-            TurretColor = Color.White;
+            TurretColor = Color.Yellow;
             RadarColor = Color.Red;
             BulletColor = Color.Red;
             ScanColor = Color.Red;
@@ -155,17 +122,13 @@ public class Roar : Bot
         // Console.WriteLine("target x: " + x + " target y: " + y);
         // Console.WriteLine("DistanceRemaining: " + DistanceRemaining);
 
-        SetTurnLeft(moveDir * NormalizeRelativeAngle(BearingTo(x, y)));
-        SetForward(moveDir * DistanceTo(x, y));
-
-
         if (GunHeat < 1) 
         {
             SetTurnRadarLeft(double.PositiveInfinity * NormalizeRelativeAngle(RadarBearingTo(e.X, e.Y)));
         }
 
         // Targeting
-        double firePower = (Math.Sqrt(ArenaHeight * ArenaHeight + ArenaWidth * ArenaWidth)) / DistanceTo(e.X, e.Y) * 0.15;
+        double firePower = (Math.Sqrt(ArenaHeight * ArenaHeight + ArenaWidth * ArenaWidth)) / DistanceTo(e.X, e.Y) * 0.3;
 
         if (GunTurnRemaining == 0)
         {
