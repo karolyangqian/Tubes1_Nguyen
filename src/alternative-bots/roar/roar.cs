@@ -6,9 +6,16 @@ using Robocode.TankRoyale.BotApi.Events;
 // ------------------------------------------------------------------
 // Roar
 // ------------------------------------------------------------------
-// v1.1
 // Targeting: Linear
 // Movement: Corner 
+// ------------------------------------------------------------------
+/*
+
+v1.1
+- Add Radar Lock
+- Add enemy distance to movement
+
+*/
 // ------------------------------------------------------------------
 public class Roar : Bot
 {
@@ -152,31 +159,36 @@ public class Roar : Bot
         SetForward(moveDir * DistanceTo(x, y));
 
 
-        SetTurnRadarLeft(NormalizeRelativeAngle(RadarBearingTo(e.X, e.Y)));
+        if (GunHeat < 1) 
+        {
+            SetTurnRadarLeft(double.PositiveInfinity * NormalizeRelativeAngle(RadarBearingTo(e.X, e.Y)));
+        }
 
         // Targeting
-        if (GunHeat < 1) {
-            double firePower = (Math.Sqrt(ArenaHeight * ArenaHeight + ArenaWidth * ArenaWidth)) / DistanceTo(e.X, e.Y) * 0.15;
-            double bulletSpeed = CalcBulletSpeed(firePower);
-            
-            double absBearing = Math.Atan2(e.Y - Y, e.X - X);
-            
-            double enemyDir = e.Direction * Math.PI / 180.0;
-            
-            double ratio = Math.Max(-1, Math.Min(1, (e.Speed * Math.Sin(enemyDir - absBearing)) / bulletSpeed));
-            
-            double gunDirection = absBearing + Math.Asin(ratio);
-            
-            double time = DistanceTo(e.X, e.Y) / bulletSpeed;
-            
-            double predictedX = e.X + e.Speed * time * Math.Cos(enemyDir);
-            double predictedY = e.Y + e.Speed * time * Math.Sin(enemyDir);
-            
-            double bearingFromGun = GunBearingTo(predictedX, predictedY);
+        double firePower = (Math.Sqrt(ArenaHeight * ArenaHeight + ArenaWidth * ArenaWidth)) / DistanceTo(e.X, e.Y) * 0.15;
 
-
-            TurnGunLeft(bearingFromGun);
-            Fire(firePower);
+        if (GunTurnRemaining == 0)
+        {
+            SetFire(firePower);
         }
+
+        double bulletSpeed = CalcBulletSpeed(firePower);
+        
+        double absBearing = Math.Atan2(e.Y - Y, e.X - X);
+        
+        double enemyDir = e.Direction * Math.PI / 180.0;
+        
+        double ratio = Math.Max(-1, Math.Min(1, (e.Speed * Math.Sin(enemyDir - absBearing)) / bulletSpeed));
+        
+        double gunDirection = absBearing + Math.Asin(ratio);
+        
+        double time = DistanceTo(e.X, e.Y) / bulletSpeed;
+        
+        double predictedX = e.X + e.Speed * time * Math.Cos(enemyDir);
+        double predictedY = e.Y + e.Speed * time * Math.Sin(enemyDir);
+        
+        double bearingFromGun = GunBearingTo(predictedX, predictedY);
+
+        SetTurnGunLeft(bearingFromGun);
     }
 }
