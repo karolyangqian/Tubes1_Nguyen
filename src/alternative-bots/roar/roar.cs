@@ -136,13 +136,7 @@ public class Roar : Bot
 
         double bulletSpeed = CalcBulletSpeed(firePower);
         
-        double absBearing = Math.Atan2(e.Y - Y, e.X - X);
-        
         double enemyDir = e.Direction * Math.PI / 180.0;
-        
-        double ratio = Math.Max(-1, Math.Min(1, (e.Speed * Math.Sin(enemyDir - absBearing)) / bulletSpeed));
-        
-        double gunDirection = absBearing + Math.Asin(ratio);
         
         double time = DistanceTo(e.X, e.Y) / bulletSpeed;
         
