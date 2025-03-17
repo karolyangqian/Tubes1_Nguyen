@@ -1,6 +1,7 @@
 {
   "format": 1,
   "restore": {
+<<<<<<< HEAD
     "C:\\Users\\Karol\\ITB\\Teknik-Informatika\\semester_4\\IF2211_StrategiAlgoritma\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Fire\\Fire.csproj": {}
   },
   "projects": {
@@ -12,9 +13,22 @@
         "projectPath": "C:\\Users\\Karol\\ITB\\Teknik-Informatika\\semester_4\\IF2211_StrategiAlgoritma\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Fire\\Fire.csproj",
         "packagesPath": "C:\\Users\\Karol\\.nuget\\packages\\",
         "outputPath": "C:\\Users\\Karol\\ITB\\Teknik-Informatika\\semester_4\\IF2211_StrategiAlgoritma\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Fire\\obj\\",
+=======
+    "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Fire\\Fire.csproj": {}
+  },
+  "projects": {
+    "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Fire\\Fire.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Fire\\Fire.csproj",
+        "projectName": "Fire",
+        "projectPath": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Fire\\Fire.csproj",
+        "packagesPath": "C:\\Users\\judhi\\.nuget\\packages\\",
+        "outputPath": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Fire\\obj\\",
+>>>>>>> origin/Schtinky
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\Karol\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\judhi\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net9.0"

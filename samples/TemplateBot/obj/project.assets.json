@@ -818,19 +818,27 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\Karol\\.nuget\\packages\\": {}
+    "C:\\Users\\judhi\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
+<<<<<<< HEAD
       "projectUniqueName": "C:\\Users\\Karol\\ITB\\Teknik-Informatika\\semester_4\\IF2211_StrategiAlgoritma\\Tubes1_Nguyen\\samples\\TemplateBot\\TemplateBot.csproj",
       "projectName": "TemplateBot",
       "projectPath": "C:\\Users\\Karol\\ITB\\Teknik-Informatika\\semester_4\\IF2211_StrategiAlgoritma\\Tubes1_Nguyen\\samples\\TemplateBot\\TemplateBot.csproj",
       "packagesPath": "C:\\Users\\Karol\\.nuget\\packages\\",
       "outputPath": "C:\\Users\\Karol\\ITB\\Teknik-Informatika\\semester_4\\IF2211_StrategiAlgoritma\\Tubes1_Nguyen\\samples\\TemplateBot\\obj\\",
+=======
+      "projectUniqueName": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\TemplateBot\\TemplateBot.csproj",
+      "projectName": "TemplateBot",
+      "projectPath": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\TemplateBot\\TemplateBot.csproj",
+      "packagesPath": "C:\\Users\\judhi\\.nuget\\packages\\",
+      "outputPath": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\TemplateBot\\obj\\",
+>>>>>>> origin/Schtinky
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\Karol\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\judhi\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net9.0"

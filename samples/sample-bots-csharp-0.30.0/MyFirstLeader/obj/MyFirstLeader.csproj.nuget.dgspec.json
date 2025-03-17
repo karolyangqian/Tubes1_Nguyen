@@ -1,6 +1,7 @@
 {
   "format": 1,
   "restore": {
+<<<<<<< HEAD
     "C:\\Users\\Karol\\ITB\\Teknik-Informatika\\semester_4\\IF2211_StrategiAlgoritma\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\MyFirstLeader\\MyFirstLeader.csproj": {}
   },
   "projects": {
@@ -18,13 +19,37 @@
         ],
         "originalTargetFrameworks": [
           "net9.0"
+=======
+    "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\MyFirstLeader\\MyFirstLeader.csproj": {}
+  },
+  "projects": {
+    "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\MyFirstLeader\\MyFirstLeader.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\MyFirstLeader\\MyFirstLeader.csproj",
+        "projectName": "MyFirstLeader",
+        "projectPath": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\MyFirstLeader\\MyFirstLeader.csproj",
+        "packagesPath": "C:\\Users\\judhi\\.nuget\\packages\\",
+        "outputPath": "C:\\Coding\\C#\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\MyFirstLeader\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\judhi\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net6.0"
+>>>>>>> origin/Schtinky
         ],
         "sources": {
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
+<<<<<<< HEAD
           "net9.0": {
             "targetAlias": "net9.0",
+=======
+          "net6.0": {
+            "targetAlias": "net6.0",
+>>>>>>> origin/Schtinky
             "projectReferences": {}
           }
         },
@@ -41,8 +66,13 @@
         "SdkAnalysisLevel": "9.0.200"
       },
       "frameworks": {
+<<<<<<< HEAD
         "net9.0": {
           "targetAlias": "net9.0",
+=======
+        "net6.0": {
+          "targetAlias": "net6.0",
+>>>>>>> origin/Schtinky
           "dependencies": {
             "Microsoft.Extensions.Configuration.Binder": {
               "target": "Package",
@@ -64,12 +94,37 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
+<<<<<<< HEAD
+=======
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Ref",
+              "version": "[6.0.36, 6.0.36]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Host.win-x64",
+              "version": "[6.0.36, 6.0.36]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Ref",
+              "version": "[6.0.36, 6.0.36]"
+            },
+            {
+              "name": "Microsoft.WindowsDesktop.App.Ref",
+              "version": "[6.0.36, 6.0.36]"
+            }
+          ],
+>>>>>>> origin/Schtinky
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
             }
           },
+<<<<<<< HEAD
           "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.200/PortableRuntimeIdentifierGraph.json"
+=======
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.200\\RuntimeIdentifierGraph.json"
+>>>>>>> origin/Schtinky
         }
       }
     }

@@ -38,7 +38,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Walls", "samples\sample-bot
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "alternative-bots", "alternative-bots", "{A3963A42-BA02-1665-FEE3-9A6867D26CB0}"
 EndProject
+<<<<<<< HEAD
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Quack", "src\alternative-bots\Quack\Quack.csproj", "{0CA9CCCD-45BE-BEEB-2707-B1321238E7B6}"
+=======
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Schtinky", "src\alternative-bots\Schtinky\Schtinky.csproj", "{71E3B265-9CE5-2542-8F12-1EF2DFC21109}"
+>>>>>>> origin/Schtinky
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -102,10 +106,17 @@ Global
 		{7ADD54D2-0049-4DF8-88CF-05FABA0D59D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7ADD54D2-0049-4DF8-88CF-05FABA0D59D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7ADD54D2-0049-4DF8-88CF-05FABA0D59D7}.Release|Any CPU.Build.0 = Release|Any CPU
+<<<<<<< HEAD
 		{0CA9CCCD-45BE-BEEB-2707-B1321238E7B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{0CA9CCCD-45BE-BEEB-2707-B1321238E7B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0CA9CCCD-45BE-BEEB-2707-B1321238E7B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0CA9CCCD-45BE-BEEB-2707-B1321238E7B6}.Release|Any CPU.Build.0 = Release|Any CPU
+=======
+		{71E3B265-9CE5-2542-8F12-1EF2DFC21109}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{71E3B265-9CE5-2542-8F12-1EF2DFC21109}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{71E3B265-9CE5-2542-8F12-1EF2DFC21109}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{71E3B265-9CE5-2542-8F12-1EF2DFC21109}.Release|Any CPU.Build.0 = Release|Any CPU
+>>>>>>> origin/Schtinky
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -127,9 +138,16 @@ Global
 		{1F15C029-AAC0-0DC7-8D6F-8E668785FE27} = {5CFA834D-333D-FA5C-3E21-356BFCAED823}
 		{7ADD54D2-0049-4DF8-88CF-05FABA0D59D7} = {5CFA834D-333D-FA5C-3E21-356BFCAED823}
 		{A3963A42-BA02-1665-FEE3-9A6867D26CB0} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+<<<<<<< HEAD
 		{0CA9CCCD-45BE-BEEB-2707-B1321238E7B6} = {A3963A42-BA02-1665-FEE3-9A6867D26CB0}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {DDF3F42F-4697-442A-B422-B650F518CDA6}
+=======
+		{71E3B265-9CE5-2542-8F12-1EF2DFC21109} = {A3963A42-BA02-1665-FEE3-9A6867D26CB0}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5089B507-53AC-4FD7-A0BD-F324CA1E507D}
+>>>>>>> origin/Schtinky
 	EndGlobalSection
 EndGlobal
