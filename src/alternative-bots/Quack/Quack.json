@@ -1,12 +1,12 @@
 {
-  "name": "Nguyen",
+  "name": "Quack",
   "version": "1.0",
   "authors": [
     "Ahmad Ibrahim",
     "Karol Yangqian P",
     "Aria Judhistira"
   ],
-  "description": "Tracks and fires at the nearest bot it sees. Moves a bit.",
+  "description": "Quack",
   "homepage": "",
   "countryCodes": [
     "id"
