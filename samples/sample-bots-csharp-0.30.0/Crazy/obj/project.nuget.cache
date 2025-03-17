@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "291H9QS85Ig=",
+  "dgSpecHash": "39OQZzGv+z8=",
   "success": true,
-  "projectFilePath": "C:\\Users\\Karol\\ITB\\Teknik-Informatika\\semester_4\\IF2211_StrategiAlgoritma\\tubes 1\\sample-bots-csharp-0.30.0\\Crazy\\Crazy.csproj",
+  "projectFilePath": "C:\\Users\\Karol\\ITB\\Teknik-Informatika\\semester_4\\IF2211_StrategiAlgoritma\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Crazy\\Crazy.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Karol\\.nuget\\packages\\microsoft.build.locator\\1.7.8\\microsoft.build.locator.1.7.8.nupkg.sha512",
     "C:\\Users\\Karol\\.nuget\\packages\\microsoft.extensions.configuration\\8.0.0\\microsoft.extensions.configuration.8.0.0.nupkg.sha512",

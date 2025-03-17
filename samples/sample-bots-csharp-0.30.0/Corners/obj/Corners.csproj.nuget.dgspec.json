@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Karol\\ITB\\Teknik-Informatika\\semester_4\\IF2211_StrategiAlgoritma\\tubes 1\\sample-bots-csharp-0.30.0\\Corners\\Corners.csproj": {}
+    "C:\\Users\\Karol\\ITB\\Teknik-Informatika\\semester_4\\IF2211_StrategiAlgoritma\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Corners\\Corners.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Karol\\ITB\\Teknik-Informatika\\semester_4\\IF2211_StrategiAlgoritma\\tubes 1\\sample-bots-csharp-0.30.0\\Corners\\Corners.csproj": {
+    "C:\\Users\\Karol\\ITB\\Teknik-Informatika\\semester_4\\IF2211_StrategiAlgoritma\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Corners\\Corners.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Karol\\ITB\\Teknik-Informatika\\semester_4\\IF2211_StrategiAlgoritma\\tubes 1\\sample-bots-csharp-0.30.0\\Corners\\Corners.csproj",
+        "projectUniqueName": "C:\\Users\\Karol\\ITB\\Teknik-Informatika\\semester_4\\IF2211_StrategiAlgoritma\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Corners\\Corners.csproj",
         "projectName": "Corners",
-        "projectPath": "C:\\Users\\Karol\\ITB\\Teknik-Informatika\\semester_4\\IF2211_StrategiAlgoritma\\tubes 1\\sample-bots-csharp-0.30.0\\Corners\\Corners.csproj",
+        "projectPath": "C:\\Users\\Karol\\ITB\\Teknik-Informatika\\semester_4\\IF2211_StrategiAlgoritma\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Corners\\Corners.csproj",
         "packagesPath": "C:\\Users\\Karol\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Karol\\ITB\\Teknik-Informatika\\semester_4\\IF2211_StrategiAlgoritma\\tubes 1\\sample-bots-csharp-0.30.0\\Corners\\obj\\",
+        "outputPath": "C:\\Users\\Karol\\ITB\\Teknik-Informatika\\semester_4\\IF2211_StrategiAlgoritma\\Tubes1_Nguyen\\samples\\sample-bots-csharp-0.30.0\\Corners\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Karol\\AppData\\Roaming\\NuGet\\NuGet.Config"
