@@ -3,3 +3,9 @@ src/alternative-bots/*/obj/
 
 samples/sample-bots-csharp-0.30.0/*/bin/
 samples/sample-bots-csharp-0.30.0/*/obj/
+
+config.properties
+games.properties
+server.properties
+
+*.sln
