@@ -25,11 +25,13 @@ public class rwar : Bot
     private readonly static double  MIN_ENERGY = 10;
     private readonly static double  ENEMY_ENERGY_THRESHOLD = 1;
     private readonly static double  RADAR_LOCK = 0.7;
-    private readonly static double  MAX_RADIUS = 100;
+    private readonly static double  MIN_RADIUS = 80;
+    private readonly static double  MAX_RADIUS = 200;
+    private readonly static double  POINT_COUNT = 36;
+    private readonly static double  MOVE_PADDING = 10;
     private readonly static int     MAX_DATA = 100;
 
     // Global variables
-    static int moveDir;
     static bool ram;
     static double ramX;
     static double ramY;
@@ -65,7 +67,6 @@ public class rwar : Bot
         AdjustRadarForBodyTurn = true;
 
         ram = false;
-        moveDir = 1;
         targetDistance = double.PositiveInfinity;
         enemyDistance = double.PositiveInfinity;
     }
@@ -81,27 +82,29 @@ public class rwar : Bot
         }
 
         // Minimum Risk Movement
-        if (DistanceRemaining < 15) 
+        if (DistanceRemaining < MOVE_PADDING) 
         {
-            moveDir = -moveDir;
-
             double bestX = X;
             double bestY = Y;
             double minRisk = double.PositiveInfinity;
 
-            for (int i = 0; i < 200; i++)
+            for (int i = 0; i < POINT_COUNT; i++)
             {
-                double r = MAX_RADIUS * Math.Sqrt(rand.NextDouble());
-                double theta = rand.NextDouble() * 2 * Math.PI;
+                double theta = (2 * Math.PI / POINT_COUNT) * i;
+                
+                double u = rand.NextDouble();
+                double r = Math.Sqrt(u * (MAX_RADIUS * MAX_RADIUS - MIN_RADIUS * MIN_RADIUS) + MIN_RADIUS * MIN_RADIUS);
+                
                 double x = X + r * Math.Cos(theta);
                 double y = Y + r * Math.Sin(theta);
 
-                if (x < MOVE_WALL_MARGIN || x > ArenaWidth - MOVE_WALL_MARGIN || y < MOVE_WALL_MARGIN || y > ArenaHeight - MOVE_WALL_MARGIN)
+                if (x < MOVE_WALL_MARGIN || x > ArenaWidth - MOVE_WALL_MARGIN ||
+                    y < MOVE_WALL_MARGIN || y > ArenaHeight - MOVE_WALL_MARGIN)
                 {
                     continue;
                 }
 
-                double risk = CalcRick(x, y);
+                double risk = CalcRisk(x, y);
                 if (risk < minRisk)
                 {
                     minRisk = risk;
@@ -121,6 +124,25 @@ public class rwar : Bot
 
     public override void OnScannedBot(ScannedBotEvent e)
     {
+        // Ram toggle
+        if (ram || (e.Energy < ENEMY_ENERGY_THRESHOLD && EnemyCount == 1))
+        {
+            ram = true;
+            ramX = e.X;
+            ramY = e.Y;
+        }
+
+        // Update enemy data
+        if (!enemyData.ContainsKey(e.ScannedBotId))
+        {
+            enemyData[e.ScannedBotId] = new EnemyData();
+        }
+        EnemyData data = enemyData[e.ScannedBotId];
+        data.LastX = e.X;
+        data.LastY = e.Y;
+        data.IsAlive = true;
+        data.LastEnergy = e.Energy;
+
         // Lock closest target
         double scannedDistance = enemyDistance = DistanceTo(e.X, e.Y);
         if (scannedDistance < targetDistance)
@@ -133,16 +155,8 @@ public class rwar : Bot
         }
         targetDistance = scannedDistance;
 
-        // Ram toggle
-        if (ram || (e.Energy < ENEMY_ENERGY_THRESHOLD && EnemyCount == 1))
-        {
-            ram = true;
-            ramX = e.X;
-            ramY = e.Y;
-        }
-
         // Radar 
-        double radarAngle = NormalizeRelativeAngle(RadarBearingTo(e.X, e.Y));
+        double radarAngle = double.PositiveInfinity * NormalizeRelativeAngle(RadarBearingTo(e.X, e.Y));
         if (!double.IsNaN(radarAngle) && (GunHeat < RADAR_LOCK || EnemyCount == 1))
         {
             SetTurnRadarLeft(radarAngle);
@@ -159,18 +173,12 @@ public class rwar : Bot
         double currentDirection = e.Direction * Math.PI / 180.0;  // arah musuh dalam radian
         double enemySpeed = e.Speed;
 
-        // Input EnemyData
-        if (!enemyData.ContainsKey(e.ScannedBotId))
-        {
-            enemyData[e.ScannedBotId] = new EnemyData();
-        }
-        EnemyData data = enemyData[e.ScannedBotId];
 
+        // Input Markov Chain
         double angularVelocity = 0;
         if (data.HasPrevious)
         {
             angularVelocity = (currentDirection - data.LastDirection + Math.PI) % (2 * Math.PI) - Math.PI;
-
         }
         data.LastDirection = currentDirection;
         data.HasPrevious = true;
@@ -190,10 +198,6 @@ public class rwar : Bot
             }
             data.MarkovChain[previousState].Add(currentState);
         }
-
-        data.LastX = e.X;
-        data.LastY = e.Y;
-        data.LastEnergy = e.Energy;
 
         // --- Play It Forward ---
         double predictedX = e.X;
@@ -258,22 +262,27 @@ public class rwar : Bot
         return bestState;
     }
 
-    private double CalcRick(double x, double y)
+    private double CalcRisk(double candidateX, double candidateY)
     {
         double risk = 0;
 
-        foreach (var enemy in enemyData.Values)
+        foreach (EnemyData enemy in enemyData.Values)
         {
-            if (enemy.IsAlive) 
+            if (enemy.IsAlive)
             {
-                risk += Math.Min(2, enemy.LastEnergy / Energy)
-                        * (1 + Math.Abs(Math.Cos((BearingTo(enemy.LastX, enemy.LastY) - BearingTo(x, y)) * Math.PI / 180)))
-                        / DistanceTo(enemy.LastX, enemy.LastY);
+                double energyFactor = enemy.LastEnergy;
+
+                double distanceSq = Math.Pow(candidateX - enemy.LastX, 2) + Math.Pow(candidateY - enemy.LastY, 2);
+                if (distanceSq < 1e-6)
+                    distanceSq = 1e-6;
+
+                risk += energyFactor / distanceSq;
             }
         }
 
         return risk;
     }
+
 }
 
 public struct MarkovState
