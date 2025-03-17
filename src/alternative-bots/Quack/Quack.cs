@@ -51,6 +51,13 @@ public class Quack : Bot
 // ================================ DRIVERS ==================================
 
     public void QuackDriverV1() {
+        // SetTurnLeft(10);
+        // Limit our speed to 5
+        MaxSpeed = 5;
+        // Start moving (and turning)
+        // SetForward(10);
+        TargetSpeed = 5;
+        TurnRate = 10;
         while (IsRunning)
         {
             if (enemyDetected) {
@@ -61,11 +68,6 @@ public class Quack : Bot
             } else {
                 TurnRadarLeft(20);
             }
-            SetTurnLeft(10);
-            // Limit our speed to 5
-            MaxSpeed = 5;
-            // Start moving (and turning)
-            SetForward(10);
         }
     }
 
