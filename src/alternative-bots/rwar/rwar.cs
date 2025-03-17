@@ -6,10 +6,10 @@ using Robocode.TankRoyale.BotApi;
 using Robocode.TankRoyale.BotApi.Events;
 
 // ------------------------------------------------------------------
-// Raur
+// rwar
 // ------------------------------------------------------------------
 // Targeting: Play It Forward
-// Movement: Corner 
+// Movement: Minimum Risk Movement
 // ------------------------------------------------------------------
 /*
 
@@ -20,13 +20,13 @@ using Robocode.TankRoyale.BotApi.Events;
 public class rwar : Bot
 {
     // Knobs
-    private readonly static double MOVE_WALL_MARGIN = 25;
-    private readonly static double GUN_FACTOR = 10;
-    private readonly static double MOVE = 3;
-    private readonly static double MIN_ENERGY = 10;
-    private readonly static double ENEMY_ENERGY_THRESHOLD = 1;
-    private readonly static double RADAR_LOCK = 0.7;
-    private readonly static int MAX_DATA = 100;
+    private readonly static double  MOVE_WALL_MARGIN = 25;
+    private readonly static double  GUN_FACTOR = 10;
+    private readonly static double  MIN_ENERGY = 10;
+    private readonly static double  ENEMY_ENERGY_THRESHOLD = 1;
+    private readonly static double  RADAR_LOCK = 0.7;
+    private readonly static double  MAX_RADIUS = 100;
+    private readonly static int     MAX_DATA = 100;
 
     // Global variables
     static int moveDir;
@@ -36,6 +36,11 @@ public class rwar : Bot
     static int targetId;
     static double targetDistance;
     static double enemyDistance;
+
+    static double destX;
+    static double destY;
+
+    Random rand = new Random();
 
     static Dictionary<int, EnemyData> enemyData = new Dictionary<int, EnemyData>();
 
@@ -75,29 +80,43 @@ public class rwar : Bot
             return;
         }
 
-        // Corner Movement
-        double x = MOVE_WALL_MARGIN + (enemyDistance / MOVE);
-        double y = MOVE_WALL_MARGIN;
-        if (DistanceRemaining == 0)
+        // Minimum Risk Movement
+        if (DistanceRemaining < 15) 
         {
             moveDir = -moveDir;
+
+            double bestX = X;
+            double bestY = Y;
+            double minRisk = double.PositiveInfinity;
+
+            for (int i = 0; i < 200; i++)
+            {
+                double r = MAX_RADIUS * Math.Sqrt(rand.NextDouble());
+                double theta = rand.NextDouble() * 2 * Math.PI;
+                double x = X + r * Math.Cos(theta);
+                double y = Y + r * Math.Sin(theta);
+
+                if (x < MOVE_WALL_MARGIN || x > ArenaWidth - MOVE_WALL_MARGIN || y < MOVE_WALL_MARGIN || y > ArenaHeight - MOVE_WALL_MARGIN)
+                {
+                    continue;
+                }
+
+                double risk = CalcRick(x, y);
+                if (risk < minRisk)
+                {
+                    minRisk = risk;
+                    bestX = x;
+                    bestY = y;
+                }
+            }
+
+            destX = bestX;
+            destY = bestY;
         }
-        if (moveDir > 0)
-        {
-            y = x;
-            x = MOVE_WALL_MARGIN;
-        }
-        if (X > ArenaWidth / 2)
-        {
-            x = ArenaWidth - x;
-        }
-        if (Y > ArenaHeight / 2)
-        {
-            y = ArenaHeight - y;
-        }
-        double turn = BearingTo(x, y) * Math.PI / 180;
+
+        double turn = BearingTo(destX, destY) * Math.PI / 180;
         SetTurnLeft(180 / Math.PI * Math.Tan(turn));
-        SetForward(DistanceTo(x, y) * Math.Cos(turn));
+        SetForward(DistanceTo(destX, destY) * Math.Cos(turn));
     }
 
     public override void OnScannedBot(ScannedBotEvent e)
@@ -172,6 +191,10 @@ public class rwar : Bot
             data.MarkovChain[previousState].Add(currentState);
         }
 
+        data.LastX = e.X;
+        data.LastY = e.Y;
+        data.LastEnergy = e.Energy;
+
         // --- Play It Forward ---
         double predictedX = e.X;
         double predictedY = e.Y;
@@ -203,6 +226,8 @@ public class rwar : Bot
 
     public override void OnBotDeath(BotDeathEvent e)
     {
+        enemyData[e.VictimId].IsAlive = false;
+        
         if (e.VictimId == targetId)
         {
             targetDistance = double.PositiveInfinity;
@@ -231,6 +256,23 @@ public class rwar : Bot
             }
         }
         return bestState;
+    }
+
+    private double CalcRick(double x, double y)
+    {
+        double risk = 0;
+
+        foreach (var enemy in enemyData.Values)
+        {
+            if (enemy.IsAlive) 
+            {
+                risk += Math.Min(2, enemy.LastEnergy / Energy)
+                        * (1 + Math.Abs(Math.Cos((BearingTo(enemy.LastX, enemy.LastY) - BearingTo(x, y)) * Math.PI / 180)))
+                        / DistanceTo(enemy.LastX, enemy.LastY);
+            }
+        }
+
+        return risk;
     }
 }
 
@@ -264,4 +306,9 @@ public class EnemyData
     public Dictionary<MarkovState, List<MarkovState>> MarkovChain { get; } = new Dictionary<MarkovState, List<MarkovState>>();
     public double LastDirection { get; set; }
     public bool HasPrevious { get; set; } = false;
+
+    public double LastX { get; set; }
+    public double LastY { get; set; }
+    public double LastEnergy { get; set; }
+    public bool IsAlive { get; set; } = true;
 }
