@@ -1,0 +1,5 @@
+src/alternative-bots/*/bin/
+src/alternative-bots/*/obj/
+
+samples/sample-bots-csharp-0.30.0/*/bin/
+samples/sample-bots-csharp-0.30.0/*/obj/

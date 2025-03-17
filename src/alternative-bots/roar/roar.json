@@ -1,0 +1,10 @@
+{
+  "name": "roar",
+  "version": "1.2",
+  "authors": ["nguyen"],
+  "description": "roar",
+  "homepage": "",
+  "countryCodes": ["id"],
+  "platform": ".Net 9.0",
+  "programmingLang": "C# 10.0"
+}
