@@ -17,15 +17,15 @@ using Robocode.TankRoyale.BotApi.Events;
 
 */
 // ------------------------------------------------------------------
-public class rwar : Bot
+public class Rwar : Bot
 {
     // Knobs
     private readonly static double  MOVE_WALL_MARGIN = 25;
     private readonly static double  GUN_FACTOR = 10;
-    private readonly static double  MIN_ENERGY = 10;
+    private readonly static double  MIN_ENERGY = 15;
     private readonly static double  ENEMY_ENERGY_THRESHOLD = 1;
     private readonly static double  RADAR_LOCK = 0.7;
-    private readonly static double  MIN_RADIUS = 80;
+    private readonly static double  MIN_RADIUS = 100;
     private readonly static double  MAX_RADIUS = 200;
     private readonly static double  POINT_COUNT = 36;
     private readonly static double  MOVE_PADDING = 10;
@@ -48,10 +48,10 @@ public class rwar : Bot
 
     static void Main()
     {
-        new rwar().Start();
+        new Rwar().Start();
     }
 
-    rwar() : base(BotInfo.FromFile("rwar.json")) { }
+    Rwar() : base(BotInfo.FromFile("rwar.json")) { }
 
     public override void Run()
     {
@@ -73,9 +73,12 @@ public class rwar : Bot
 
     public override void OnTick(TickEvent e)
     {
+        TurretColor = Color.FromArgb(rand.Next(256), rand.Next(256), rand.Next(256));
+
         // GOOO!!!
         if (ram)
         {
+            ScanColor = Color.FromArgb(rand.Next(256), rand.Next(256), rand.Next(256));
             SetTurnLeft(NormalizeRelativeAngle(BearingTo(ramX, ramY)));
             SetForward(DistanceTo(ramX, ramY));
             return;
@@ -125,7 +128,7 @@ public class rwar : Bot
     public override void OnScannedBot(ScannedBotEvent e)
     {
         // Ram toggle
-        if (ram || (e.Energy < ENEMY_ENERGY_THRESHOLD && EnemyCount == 1))
+        if (ram || (EnemyCount == 1 && e.Energy < ENEMY_ENERGY_THRESHOLD))
         {
             ram = true;
             ramX = e.X;
@@ -170,20 +173,20 @@ public class rwar : Bot
         }
 
         double bulletSpeed = CalcBulletSpeed(firePower);
-        double currentDirection = e.Direction * Math.PI / 180.0;  // arah musuh dalam radian
+        double currentDirection = e.Direction * Math.PI / 180.0;
         double enemySpeed = e.Speed;
-
 
         // Input Markov Chain
         double angularVelocity = 0;
-        if (data.HasPrevious)
+        if (data.LastTime + 1 == e.TurnNumber && data.HasPrevious)
         {
             angularVelocity = (currentDirection - data.LastDirection + Math.PI) % (2 * Math.PI) - Math.PI;
         }
+        data.LastTime = e.TurnNumber;
         data.LastDirection = currentDirection;
         data.HasPrevious = true;
 
-        MarkovState currentState = new MarkovState(angularVelocity);
+        State currentState = new State(angularVelocity);
         data.StateHistory.Add(currentState);
         if (data.StateHistory.Count > MAX_DATA)
         {
@@ -191,10 +194,10 @@ public class rwar : Bot
         }
         if (data.StateHistory.Count >= 2)
         {
-            MarkovState previousState = data.StateHistory[data.StateHistory.Count - 2];
+            State previousState = data.StateHistory[data.StateHistory.Count - 2];
             if (!data.MarkovChain.ContainsKey(previousState))
             {
-                data.MarkovChain[previousState] = new List<MarkovState>();
+                data.MarkovChain[previousState] = new List<State>();
             }
             data.MarkovChain[previousState].Add(currentState);
         }
@@ -204,13 +207,13 @@ public class rwar : Bot
         double predictedY = e.Y;
         double predictedDirection = currentDirection;
         double simAngularVelocity = angularVelocity;
-        MarkovState simCurrentState = currentState;
+        State simCurrentState = currentState;
         int time = 0;
         while (time * bulletSpeed < DistanceTo(predictedX, predictedY))
         {
             if (data.MarkovChain.ContainsKey(simCurrentState) && data.MarkovChain[simCurrentState].Count > 0)
             {
-                MarkovState nextState = GetMostFrequentTransition(data.MarkovChain[simCurrentState]);
+                State nextState = GetMostFrequentTransition(data.MarkovChain[simCurrentState]);
                 simAngularVelocity = nextState.AngularVelocity / 1000.0;
                 simCurrentState = nextState;
             }
@@ -220,7 +223,7 @@ public class rwar : Bot
             time++;
         }
 
-        // Wall smoothing
+        // Bullet's Wall Avoidance
         predictedX = Math.Max(MOVE_WALL_MARGIN, Math.Min(ArenaWidth - MOVE_WALL_MARGIN, predictedX));
         predictedY = Math.Max(MOVE_WALL_MARGIN, Math.Min(ArenaHeight - MOVE_WALL_MARGIN, predictedY));
 
@@ -239,17 +242,17 @@ public class rwar : Bot
     }
 
     // --- Helper Functions ---
-    private MarkovState GetMostFrequentTransition(List<MarkovState> transitions)
+    private State GetMostFrequentTransition(List<State> transitions)
     {
-        Dictionary<MarkovState, int> frequency = new Dictionary<MarkovState, int>();
-        foreach (var state in transitions)
+        Dictionary<State, int> frequency = new Dictionary<State, int>();
+        foreach (State state in transitions)
         {
             if (frequency.ContainsKey(state))
                 frequency[state]++;
             else
                 frequency[state] = 1;
         }
-        MarkovState bestState = transitions[0];
+        State bestState = transitions[0];
         int bestCount = 0;
         foreach (var kvp in frequency)
         {
@@ -285,18 +288,18 @@ public class rwar : Bot
 
 }
 
-public struct MarkovState
+public struct State
 {
     public int AngularVelocity; // quantized: radian * 1000
 
-    public MarkovState(double angularVelocity)
+    public State(double angularVelocity)
     {
         AngularVelocity = (int)(angularVelocity * 1000);
     }
 
     public override bool Equals(object obj)
     {
-        if (obj is MarkovState state)
+        if (obj is State state)
         {
             return state.AngularVelocity == AngularVelocity;
         }
@@ -311,13 +314,14 @@ public struct MarkovState
 
 public class EnemyData
 {
-    public List<MarkovState> StateHistory { get; } = new List<MarkovState>();
-    public Dictionary<MarkovState, List<MarkovState>> MarkovChain { get; } = new Dictionary<MarkovState, List<MarkovState>>();
+    public List<State> StateHistory { get; } = new List<State>();
+    public Dictionary<State, List<State>> MarkovChain { get; } = new Dictionary<State, List<State>>();
     public double LastDirection { get; set; }
     public bool HasPrevious { get; set; } = false;
 
     public double LastX { get; set; }
     public double LastY { get; set; }
     public double LastEnergy { get; set; }
+    public double LastTime { get; set; }
     public bool IsAlive { get; set; } = true;
 }
