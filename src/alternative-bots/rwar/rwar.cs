@@ -22,10 +22,10 @@ public class Rwar : Bot
     // Knobs
     private readonly static double  MOVE_WALL_MARGIN = 25;
     private readonly static double  GUN_FACTOR = 10;
-    private readonly static double  MIN_ENERGY = 15;
+    private readonly static double  MIN_ENERGY = 10;
     private readonly static double  ENEMY_ENERGY_THRESHOLD = 1;
     private readonly static double  RADAR_LOCK = 0.7;
-    private readonly static double  MIN_RADIUS = 100;
+    private readonly static double  MIN_RADIUS = 80;
     private readonly static double  MAX_RADIUS = 200;
     private readonly static double  POINT_COUNT = 36;
     private readonly static double  MOVE_PADDING = 10;
@@ -178,11 +178,10 @@ public class Rwar : Bot
 
         // Input Markov Chain
         double angularVelocity = 0;
-        if (data.LastTime + 1 == e.TurnNumber && data.HasPrevious)
+        if (data.HasPrevious)
         {
             angularVelocity = (currentDirection - data.LastDirection + Math.PI) % (2 * Math.PI) - Math.PI;
         }
-        data.LastTime = e.TurnNumber;
         data.LastDirection = currentDirection;
         data.HasPrevious = true;
 
@@ -322,6 +321,5 @@ public class EnemyData
     public double LastX { get; set; }
     public double LastY { get; set; }
     public double LastEnergy { get; set; }
-    public double LastTime { get; set; }
     public bool IsAlive { get; set; } = true;
 }
