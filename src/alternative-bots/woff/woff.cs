@@ -23,17 +23,13 @@ public class Woff : Bot
     private readonly static double  MOVE_WALL_MARGIN = 25;
     private readonly static double  GUN_FACTOR = 10;
     private readonly static double  MIN_ENERGY = 10;
-    private readonly static double  ENEMY_ENERGY_THRESHOLD = 1;
     private readonly static double  RADAR_LOCK = 0.7;
-    private readonly static double  MIN_RADIUS = 50;
+    private readonly static double  MIN_RADIUS = 200;
     private readonly static double  MAX_RADIUS = 300;
     private readonly static double  POINT_COUNT = 36;
     private readonly static int     MAX_DATA = 100;
 
     // Global variables
-    static bool ram;
-    static double ramX;
-    static double ramY;
     static int targetId;
     static double targetDistance;
     static double enemyDistance;
@@ -63,7 +59,6 @@ public class Woff : Bot
         AdjustRadarForGunTurn = true;
         AdjustRadarForBodyTurn = true;
 
-        ram = false;
         targetDistance = double.PositiveInfinity;
         enemyDistance = double.PositiveInfinity;
         bullets = new List<Bullet>();
@@ -91,15 +86,6 @@ public class Woff : Bot
             {
                 bullets[i] = bullet;
             }
-        }
-
-        // GOOO!!!
-        if (ram)
-        {
-            ScanColor = Color.FromArgb(rand.Next(256), rand.Next(256), rand.Next(256));
-            SetTurnLeft(NormalizeRelativeAngle(BearingTo(ramX, ramY)));
-            SetForward(DistanceTo(ramX, ramY));
-            return;
         }
 
         // Minimum Risk Movement
@@ -146,14 +132,6 @@ public class Woff : Bot
 
     public override void OnScannedBot(ScannedBotEvent e)
     {
-        // Ram toggle
-        if (ram || (EnemyCount == 1 && e.Energy < ENEMY_ENERGY_THRESHOLD))
-        {
-            ram = true;
-            ramX = e.X;
-            ramY = e.Y;
-        }
-
         // Update enemy data
         if (!enemyData.ContainsKey(e.ScannedBotId))
         {
@@ -187,7 +165,7 @@ public class Woff : Bot
         double firePower = Energy / DistanceTo(e.X, e.Y) * GUN_FACTOR;
         if (GunTurnRemaining == 0 && (Energy > MIN_ENERGY || DistanceTo(e.X, e.Y) < 50))
         {
-            SetFire(firePower);
+            // SetFire(firePower);
         }
 
         double bulletSpeed = CalcBulletSpeed(firePower);
@@ -347,7 +325,7 @@ public class Woff : Bot
         {
             if (enemy.IsAlive)
             {
-                risk += enemy.LastEnergy / (distanceSq(candidateX, candidateY, enemy.LastX, enemy.LastY) + 1e-6);
+                risk += 300 * (enemy.LastEnergy - 1.1) / (distanceSq(candidateX, candidateY, enemy.LastX, enemy.LastY) + 1e-6);
             }
         }
 
@@ -356,10 +334,15 @@ public class Woff : Bot
 
         foreach (Bullet bullet in bullets)
         {
-            int time = (int)(DistanceTo(candidateX, candidateY) / (Speed + 1e-6));
-            double futureX = bullet.X + bullet.Speed * Math.Cos(bullet.Direction) * ((double)time + 2.3);
-            double futureY = bullet.Y + bullet.Speed * Math.Sin(bullet.Direction) * ((double)time + 2.3);
-            risk += 10 * bullet.Power / distanceSq(futureX, futureY, candidateX, candidateY);
+            Line2D bulletLine = new Line2D(
+                bullet.X, 
+                bullet.Y, 
+                bullet.X + Math.Cos(bullet.Direction) * 10000, 
+                bullet.Y + Math.Sin(bullet.Direction) * 10000
+            );
+            
+            double d = bulletLine.DistanceToPoint(candidateX, candidateY);
+            risk += 10 * bullet.Power / (d * d + 1e-6);
         }
 
         return risk;
@@ -379,18 +362,19 @@ public class Woff : Bot
         };
         bullets.Add(bullet);
         
-        // // Linear
-        // double linearX = x - speed * Math.Cos(Direction);
-        // double linearY = y - speed * Math.Sin(Direction);
-        // double linearDirection = 180 + DirectionTo(linearX, linearY);
-        // Bullet bulletLinear = new Bullet
-        // {
-        //     Speed = speed,
-        //     Direction = linearDirection,
-        //     X = x + speed * Math.Cos(linearDirection),
-        //     Y = y + speed * Math.Sin(linearDirection),
-        // };
-        // bullets.Add(bulletLinear);
+        // Linear
+        double linearX = x - speed * Math.Cos(Direction);
+        double linearY = y - speed * Math.Sin(Direction);
+        double linearDirection = 180 + DirectionTo(linearX, linearY);
+        Bullet bulletLinear = new Bullet
+        {
+            Speed = speed,
+            Direction = linearDirection,
+            X = x,
+            Y = y,
+            Power = power * 2
+        };
+        bullets.Add(bulletLinear);
     }
     
     private double distanceSq(double x1, double y1, double x2, double y2)
@@ -443,4 +427,26 @@ public struct Bullet
     public double Speed;
     public double Direction;
     public double Power;
+}
+
+public class Line2D
+{
+    public double X1 { get; }
+    public double Y1 { get; }
+    public double X2 { get; }
+    public double Y2 { get; }
+
+    public Line2D(double x1, double y1, double x2, double y2)
+    {
+        X1 = x1;
+        Y1 = y1;
+        X2 = x2;
+        Y2 = y2;
+    }
+
+    public double DistanceToPoint(double px, double py)
+    {
+        return Math.Abs((Y2 - Y1) * px - (X2 - X1) * py + (X2 * Y1 - Y2 * X1)) 
+                / Math.Sqrt(Math.Pow(Y2 - Y1, 2) + Math.Pow(X2 - X1, 2));
+    }
 }
