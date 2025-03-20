@@ -25,10 +25,9 @@ public class Woff : Bot
     private readonly static double  MIN_ENERGY = 10;
     private readonly static double  ENEMY_ENERGY_THRESHOLD = 1;
     private readonly static double  RADAR_LOCK = 0.7;
-    private readonly static double  MIN_RADIUS = 80;
-    private readonly static double  MAX_RADIUS = 200;
+    private readonly static double  MIN_RADIUS = 50;
+    private readonly static double  MAX_RADIUS = 300;
     private readonly static double  POINT_COUNT = 36;
-    private readonly static double  MOVE_PADDING = 10;
     private readonly static int     MAX_DATA = 100;
 
     // Global variables
@@ -45,6 +44,8 @@ public class Woff : Bot
     Random rand = new Random();
 
     static Dictionary<int, EnemyData> enemyData = new Dictionary<int, EnemyData>();
+
+    static List<Bullet> bullets;
 
     static void Main()
     {
@@ -65,6 +66,7 @@ public class Woff : Bot
         ram = false;
         targetDistance = double.PositiveInfinity;
         enemyDistance = double.PositiveInfinity;
+        bullets = new List<Bullet>();
     }
 
     public override void OnTick(TickEvent e)
@@ -73,6 +75,23 @@ public class Woff : Bot
         BulletColor = Color.FromArgb(rand.Next(256), rand.Next(256), rand.Next(256));
         ScanColor = Color.FromArgb(105, 105, rand.Next(256));
         BodyColor = ScanColor;
+
+        for (int i = bullets.Count - 1; i >= 0; i--)
+        {
+            Bullet bullet = bullets[i];
+            bullet.X += bullet.Speed * Math.Cos(bullet.Direction);
+            bullet.Y += bullet.Speed * Math.Sin(bullet.Direction);
+            // Console.WriteLine("BulletId: " + i + " X: " + bullet.X + " Y: " + bullet.Y);
+
+            if (bullet.X < 0 || bullet.X > ArenaWidth || bullet.Y < 0 || bullet.Y > ArenaHeight)
+            {
+                bullets.RemoveAt(i);
+            }
+            else 
+            {
+                bullets[i] = bullet;
+            }
+        }
 
         // GOOO!!!
         if (ram)
@@ -84,17 +103,15 @@ public class Woff : Bot
         }
 
         // Minimum Risk Movement
-        if (DistanceRemaining < MOVE_PADDING) 
-        {
-            double bestX = X;
-            double bestY = Y;
-            double minRisk = double.PositiveInfinity;
+        double bestX = X;
+        double bestY = Y;
+        double minRisk = double.PositiveInfinity;
 
-            for (int i = 0; i < POINT_COUNT; i++)
-            {
-                double theta = (2 * Math.PI / POINT_COUNT) * i;
-                
-                double u = rand.NextDouble();
+        for (int i = 0; i < POINT_COUNT; i++)
+        {
+            double theta = (2 * Math.PI / POINT_COUNT) * i;
+            
+            for (int u = 0; u <= 1; u++) {
                 double r = Math.Sqrt(u * (MAX_RADIUS * MAX_RADIUS - MIN_RADIUS * MIN_RADIUS) + MIN_RADIUS * MIN_RADIUS);
                 
                 double x = X + r * Math.Cos(theta);
@@ -114,7 +131,10 @@ public class Woff : Bot
                     bestY = y;
                 }
             }
+        }
 
+        if (minRisk < CalcRisk(destX, destY) * 0.9)
+        {
             destX = bestX;
             destY = bestY;
         }
@@ -143,7 +163,6 @@ public class Woff : Bot
         data.LastX = e.X;
         data.LastY = e.Y;
         data.IsAlive = true;
-        data.LastEnergy = e.Energy;
 
         // Lock closest target
         double scannedDistance = enemyDistance = DistanceTo(e.X, e.Y);
@@ -174,6 +193,15 @@ public class Woff : Bot
         double bulletSpeed = CalcBulletSpeed(firePower);
         double currentDirection = e.Direction * Math.PI / 180.0;
         double enemySpeed = e.Speed;
+
+        // Input Virtual Bullets
+        double energyDrop = data.LastEnergy - e.Energy;
+        if (0.11 < energyDrop && energyDrop <= 3)
+        {
+            AddVirtualBullet(e.X, e.Y, CalcBulletSpeed(energyDrop), energyDrop);
+            Console.WriteLine("Bullet Speed: " + CalcBulletSpeed(energyDrop) + " Power: " + energyDrop);
+        }
+        data.LastEnergy = e.Energy;
 
         // Input Markov Chain
         double angularVelocity = 0;
@@ -239,6 +267,54 @@ public class Woff : Bot
         }
     }
 
+    public override void OnBulletFired(BulletFiredEvent e)
+    {
+        // Console.WriteLine("BulletId: " + e.Bullet.BulletId + " X: " + e.Bullet.X + " Y: " + e.Bullet.Y);
+        // bullets[e.Bullet.BulletId] = new Bullet
+        // {
+        //     X = e.Bullet.X,
+        //     Y = e.Bullet.Y,
+        //     Speed = CalcBulletSpeed(e.Bullet.Power),
+        //     Direction = e.Bullet.Direction * Math.PI / 180
+        // };
+    }
+
+    public override void OnBulletHit(BulletHitBotEvent e)
+    {
+        // Console.WriteLine("Bullet Hit Bullet " + e.Bullet.BulletId + " Owner: " + e.Bullet.OwnerId);
+        // if (e.Bullet.OwnerId == MyId)
+        // {
+        //     bullets.Remove(e.Bullet.BulletId);
+        // }
+    }
+
+    public override void OnBulletHitBullet(BulletHitBulletEvent e)
+    {
+        // Console.WriteLine("Bullet Hit Bullet " + e.Bullet.BulletId + " Owner: " + e.Bullet.OwnerId);
+        // if (e.Bullet.OwnerId == MyId)
+        // {
+        //     bullets.Remove(e.Bullet.BulletId);
+        // }
+    }
+
+    public override void OnBulletHitWall(BulletHitWallEvent e)
+    {
+        // Console.WriteLine("Bullet Hit Wall " + e.Bullet.BulletId + " Owner: " + e.Bullet.OwnerId);
+        // if (e.Bullet.OwnerId == MyId)
+        // {
+        //     bullets.Remove(e.Bullet.BulletId);
+        // }
+    }
+
+    public override void OnHitByBullet(HitByBulletEvent e)
+    {
+        // Console.WriteLine("Hit by bullet " + e.Bullet.BulletId + " Owner: " + e.Bullet.OwnerId);
+        // if (e.Bullet.OwnerId == MyId)
+        // {
+        //     bullets.Remove(e.Bullet.BulletId);
+        // }
+    }
+
     // --- Helper Functions ---
     private State GetMostFrequentTransition(List<State> transitions)
     {
@@ -275,10 +351,46 @@ public class Woff : Bot
             }
         }
 
-        risk += rand.NextDouble() / (Math.Pow(DistanceTo(candidateX, candidateY), 2) + 1e-6);
+        risk += 10 * rand.NextDouble() / (Math.Pow(DistanceTo(candidateX, candidateY), 2) + 1e-6);
         // risk += rand.NextDouble() / (2 * distanceSq(ArenaWidth / 2, ArenaHeight / 2, candidateX, candidateY) + 1e-6);
 
+        foreach (Bullet bullet in bullets)
+        {
+            int time = (int)(DistanceTo(candidateX, candidateY) / (Speed + 1e-6));
+            double futureX = bullet.X + bullet.Speed * Math.Cos(bullet.Direction) * ((double)time + 2.3);
+            double futureY = bullet.Y + bullet.Speed * Math.Sin(bullet.Direction) * ((double)time + 2.3);
+            risk += 10 * bullet.Power / distanceSq(futureX, futureY, candidateX, candidateY);
+        }
+
         return risk;
+    }
+    
+    private void AddVirtualBullet(double x, double y, double speed, double power)
+    {
+        // Head on
+        double headOnDirection = (180 + DirectionTo(x, y)) * Math.PI / 180;
+        Bullet bullet = new Bullet
+        {
+            Speed = speed,
+            Direction = headOnDirection,
+            X = x,
+            Y = y,
+            Power = power
+        };
+        bullets.Add(bullet);
+        
+        // // Linear
+        // double linearX = x - speed * Math.Cos(Direction);
+        // double linearY = y - speed * Math.Sin(Direction);
+        // double linearDirection = 180 + DirectionTo(linearX, linearY);
+        // Bullet bulletLinear = new Bullet
+        // {
+        //     Speed = speed,
+        //     Direction = linearDirection,
+        //     X = x + speed * Math.Cos(linearDirection),
+        //     Y = y + speed * Math.Sin(linearDirection),
+        // };
+        // bullets.Add(bulletLinear);
     }
     
     private double distanceSq(double x1, double y1, double x2, double y2)
@@ -322,4 +434,13 @@ public class EnemyData
     public double LastY { get; set; }
     public double LastEnergy { get; set; }
     public bool IsAlive { get; set; } = true;
+}
+
+public struct Bullet
+{
+    public double X;
+    public double Y;
+    public double Speed;
+    public double Direction;
+    public double Power;
 }
