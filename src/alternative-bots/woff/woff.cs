@@ -20,6 +20,7 @@ using Robocode.TankRoyale.BotApi.Events;
 public class Woff : Bot
 {
     // Knobs
+    private readonly static double  ENEMY_ENERGY_THRESHOLD = 1.3;
     private readonly static double  MOVE_WALL_MARGIN = 25;
     private readonly static double  GUN_FACTOR = 10;
     private readonly static double  MIN_ENERGY = 10;
@@ -78,7 +79,8 @@ public class Woff : Bot
             bullet.Y += bullet.Speed * Math.Sin(bullet.Direction);
             // Console.WriteLine("BulletId: " + i + " X: " + bullet.X + " Y: " + bullet.Y);
 
-            if (bullet.X < 0 || bullet.X > ArenaWidth || bullet.Y < 0 || bullet.Y > ArenaHeight)
+            if (bullet.X < 0 - MOVE_WALL_MARGIN * 2 || bullet.X > ArenaWidth + MOVE_WALL_MARGIN * 2 || 
+                bullet.Y < 0 - MOVE_WALL_MARGIN * 2 || bullet.Y > ArenaHeight + MOVE_WALL_MARGIN * 2)
             {
                 bullets.RemoveAt(i);
             }
@@ -177,7 +179,7 @@ public class Woff : Bot
         if (0.11 < energyDrop && energyDrop <= 3)
         {
             AddVirtualBullet(e.X, e.Y, CalcBulletSpeed(energyDrop), energyDrop);
-            Console.WriteLine("Bullet Speed: " + CalcBulletSpeed(energyDrop) + " Power: " + energyDrop);
+            // Console.WriteLine("Bullet Speed: " + CalcBulletSpeed(energyDrop) + " Power: " + energyDrop);
         }
         data.LastEnergy = e.Energy;
 
@@ -325,7 +327,7 @@ public class Woff : Bot
         {
             if (enemy.IsAlive)
             {
-                risk += 300 * (enemy.LastEnergy - 1.1) / (distanceSq(candidateX, candidateY, enemy.LastX, enemy.LastY) + 1e-6);
+                risk += 300 * (enemy.LastEnergy - ENEMY_ENERGY_THRESHOLD) / (distanceSq(candidateX, candidateY, enemy.LastX, enemy.LastY) + 1e-6);
             }
         }
 
@@ -335,8 +337,8 @@ public class Woff : Bot
         foreach (Bullet bullet in bullets)
         {
             Line2D bulletLine = new Line2D(
-                bullet.X, 
-                bullet.Y, 
+                bullet.X - Math.Cos(bullet.Direction) * 10000, 
+                bullet.Y - Math.Sin(bullet.Direction) * 10000, 
                 bullet.X + Math.Cos(bullet.Direction) * 10000, 
                 bullet.Y + Math.Sin(bullet.Direction) * 10000
             );
