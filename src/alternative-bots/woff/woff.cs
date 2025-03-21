@@ -167,12 +167,11 @@ public class Woff : Bot
         double firePower = Energy / DistanceTo(e.X, e.Y) * GUN_FACTOR;
         if (GunTurnRemaining == 0 && (Energy > MIN_ENERGY || DistanceTo(e.X, e.Y) < 50))
         {
-            // SetFire(firePower);
+            SetFire(firePower);
         }
 
         double bulletSpeed = CalcBulletSpeed(firePower);
         double currentDirection = e.Direction * Math.PI / 180.0;
-        double enemySpeed = e.Speed;
 
         // Input Virtual Bullets
         double energyDrop = data.LastEnergy - e.Energy;
@@ -184,6 +183,14 @@ public class Woff : Bot
         data.LastEnergy = e.Energy;
 
         // Input Markov Chain
+        double currentSpeed = e.Speed;
+        double acceleration = 0;
+        if (data.HasPrevious)
+        {
+            acceleration = currentSpeed - data.LastSpeed;
+        }
+        data.LastSpeed = currentSpeed;
+        
         double angularVelocity = 0;
         if (data.HasPrevious)
         {
@@ -192,7 +199,7 @@ public class Woff : Bot
         data.LastDirection = currentDirection;
         data.HasPrevious = true;
 
-        State currentState = new State(angularVelocity);
+        State currentState = new State(angularVelocity, currentSpeed, acceleration);
         data.StateHistory.Add(currentState);
         if (data.StateHistory.Count > MAX_DATA)
         {
@@ -212,6 +219,7 @@ public class Woff : Bot
         double predictedX = e.X;
         double predictedY = e.Y;
         double predictedDirection = currentDirection;
+        double predictedSpeed = currentSpeed;
         double simAngularVelocity = angularVelocity;
         State simCurrentState = currentState;
         int time = 0;
@@ -221,11 +229,12 @@ public class Woff : Bot
             {
                 State nextState = GetMostFrequentTransition(data.MarkovChain[simCurrentState]);
                 simAngularVelocity = nextState.AngularVelocity / 1000.0;
+                predictedSpeed += nextState.Acceleration;
                 simCurrentState = nextState;
             }
             predictedDirection += simAngularVelocity;
-            predictedX += enemySpeed * Math.Cos(predictedDirection);
-            predictedY += enemySpeed * Math.Sin(predictedDirection);
+            predictedX += predictedSpeed * Math.Cos(predictedDirection);
+            predictedY += predictedSpeed * Math.Sin(predictedDirection);
             time++;
         }
 
@@ -298,15 +307,17 @@ public class Woff : Bot
     // --- Helper Functions ---
     private State GetMostFrequentTransition(List<State> transitions)
     {
+        List<State> transitionsCopy = new List<State>(transitions);
+        
         Dictionary<State, int> frequency = new Dictionary<State, int>();
-        foreach (State state in transitions)
+        foreach (State state in transitionsCopy)
         {
             if (frequency.ContainsKey(state))
                 frequency[state]++;
             else
                 frequency[state] = 1;
         }
-        State bestState = transitions[0];
+        State bestState = transitionsCopy[0];
         int bestCount = 0;
         foreach (var kvp in frequency)
         {
@@ -388,24 +399,38 @@ public class Woff : Bot
 public struct State
 {
     public int AngularVelocity; // quantized: radian * 1000
+    public int Speed; // -8 -- 8
+    public int Acceleration; // -1 -- 1
 
-    public State(double angularVelocity)
+    public State(double angularVelocity, double speed, double acceleration)
     {
         AngularVelocity = (int)(angularVelocity * 1000);
+
+        Speed = (int)Math.Round(speed);
+        
+        double threshold = 0.1; 
+        if (acceleration < -threshold)
+            Acceleration = -1;
+        else if (acceleration > threshold)
+            Acceleration = 1;
+        else
+            Acceleration = 0;
     }
 
     public override bool Equals(object obj)
     {
         if (obj is State state)
         {
-            return state.AngularVelocity == AngularVelocity;
+            return state.AngularVelocity == AngularVelocity &&
+                   state.Speed == Speed &&
+                   state.Acceleration == Acceleration;
         }
         return false;
     }
 
     public override int GetHashCode()
     {
-        return AngularVelocity.GetHashCode();
+        return AngularVelocity.GetHashCode() ^ Speed.GetHashCode() ^ Acceleration.GetHashCode();
     }
 }
 
@@ -419,6 +444,7 @@ public class EnemyData
     public double LastX { get; set; }
     public double LastY { get; set; }
     public double LastEnergy { get; set; }
+    public double LastSpeed { get; set; }
     public bool IsAlive { get; set; } = true;
 }
 
