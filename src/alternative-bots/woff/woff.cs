@@ -207,18 +207,10 @@ public class Woff : Bot
 
         // Input Markov Chain
         double currentSpeed = e.Speed;
-        double acceleration = 0;
-        if (data.HasPrevious)
-        {
-            acceleration = currentSpeed - data.LastSpeed;
-        }
+        double acceleration = data.HasPrevious ? currentSpeed - data.LastSpeed : 0;
         data.LastSpeed = currentSpeed;
-        
-        double angularVelocity = 0;
-        if (data.HasPrevious)
-        {
-            angularVelocity = (currentDirection - data.LastDirection + Math.PI) % (2 * Math.PI) - Math.PI;
-        }
+        double angularVelocity = data.HasPrevious ? (currentDirection - data.LastDirection + Math.PI) % (2 * Math.PI) - Math.PI : 0;
+ 
         data.LastDirection = currentDirection;
         data.HasPrevious = true;
 
@@ -251,7 +243,7 @@ public class Woff : Bot
             if (data.MarkovChain.ContainsKey(simCurrentState) && data.MarkovChain[simCurrentState].Count > 0)
             {
                 State nextState = GetMostFrequentTransition(data.MarkovChain[simCurrentState]);
-                simAngularVelocity = nextState.AngularVelocity / 1000.0;
+                simAngularVelocity = nextState.AngularVelocity / 256.0;
                 predictedSpeed += nextState.Acceleration;
                 simCurrentState = nextState;
             }
@@ -372,13 +364,13 @@ public class Woff : Bot
 
 public struct State
 {
-    public int AngularVelocity; // quantized: radian * 1000
+    public int AngularVelocity; // quantized: radian * 256
     public int Speed;           // -8 -- 8
     public int Acceleration;    // -1 -- 1
 
     public State(double angularVelocity, double speed, double acceleration)
     {
-        AngularVelocity = (int)(angularVelocity * 1000);
+        AngularVelocity = (int)(angularVelocity * 256);
 
         Speed = (int)Math.Round(speed);
         
