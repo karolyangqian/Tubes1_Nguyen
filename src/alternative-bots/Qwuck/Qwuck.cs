@@ -22,6 +22,9 @@ public class Qwuck : Bot
     static double STICK_LENGTH = 100;
     static double OSCILLATION_RADIUS = 60;
     static double MAX_SPEED = 8;
+    static double MIN_SPEED = 2;
+    private const double MAX_TURN_RATE = 15;
+    private const double MIN_TURN_RATE = 5;
     static double GUN_FACTOR = 5;
     static bool navigating = false;
     static Dictionary<int, EnemyData> enemies = new Dictionary<int, EnemyData>();
@@ -75,7 +78,9 @@ public class Qwuck : Bot
 
         if (navigating && !WallSmoothing()) {
             // Console.WriteLine(string.Format("Distance to corner: {0:0.00} {1}", DistanceTo(corner.x, corner.y), navigating));
-            MoveTo(corner.x, corner.y);
+            double turn = BearingTo(corner.x, corner.y);
+            Point2D magicStick = CalcStickEnd(turn + 40 * (Math.Sin(DateTime.Now.Millisecond * 2 * Math.PI / 1100)));
+            MoveTo(magicStick.x, magicStick.y);
             if (DistanceTo(corner.x, corner.y) < OSCILLATION_RADIUS) {
                 TargetSpeed = 0;
                 // SetTurnLeft(90);
@@ -84,6 +89,7 @@ public class Qwuck : Bot
         } else {
             Oscillate();
         }
+        Console.WriteLine(string.Format("Distance to corner: {0:0.00} {1}", DistanceTo(corner.x, corner.y), navigating));
 
         if (DistanceTo(corner.x, corner.y) > 4 * OSCILLATION_RADIUS) {
             navigating = true;
@@ -173,7 +179,9 @@ public class Qwuck : Bot
         // double v = 3;
 
         if (!WallSmoothing()) {
-            Point2D walkStick = CalcStickEnd(15 + 5 * Math.Sin(DateTime.UtcNow.Millisecond) + 5 * random.NextDouble());
+            double turn = 20 + 40 * (Math.Sin(DateTime.Now.Millisecond * 2 * Math.PI / 1400));
+            Console.WriteLine(string.Format("Turn: {0:0.00}", turn));
+            Point2D walkStick = CalcStickEnd(turn);
             // double theta = 15 * Math.PI / 180;
             // double newX = (walkStick.x - X) * Math.Cos(theta) - (walkStick.y - Y) * Math.Sin(theta) + X;
             // double newY = (walkStick.y - Y) * Math.Cos(theta) + (walkStick.x - Y) * Math.Sin(theta) + Y;
@@ -182,7 +190,18 @@ public class Qwuck : Bot
             double newY = Math.Max(WALL_MARGIN, Math.Min(ArenaHeight - WALL_MARGIN, walkStick.y));
 
             double a = 3;
-            MoveTo(newX, newY, oscillatingSpeed += a * random.NextDouble() * (random.NextDouble() > 0.4 ? 1 : -1));
+            MoveTo(newX, newY, oscillatingSpeed);
+            // double newSpeed = TargetSpeed + random.NextDouble()*2 * (random.NextDouble() > 0.4 ? 1 : -1);
+            // if (newSpeed > MIN_SPEED && newSpeed < MAX_SPEED) {
+            //     TargetSpeed = newSpeed;
+            // }
+
+            // double newTurnRate = TurnRate + random.NextDouble()*2 * (random.NextDouble() > 0.4 ? 1 : -1);
+            // if (newTurnRate > MIN_TURN_RATE && newTurnRate < MAX_TURN_RATE) {
+            //     TurnRate = newTurnRate;
+            // }
+            // Console.WriteLine("newSpeed: {0:0.00} newTR: {1:0.00}", newSpeed, newTurnRate);
+
         }
 
 
@@ -204,7 +223,6 @@ public class Qwuck : Bot
         //     // }
         //     TargetSpeed = 2;
         //     // Forward(-50);
-        //     Console.WriteLine("Smoothing, speed: {0:0.00}", Speed);
         // } else {
         // }
         // TargetSpeed += 2.5 * random.NextDouble() * (random.NextDouble() > 0.4 ? 1 : -1);
@@ -215,6 +233,10 @@ public class Qwuck : Bot
     private bool WallSmoothing() {
         Point2D frontStick = CalcStickEnd(0);
         if (IsOutsideArena(frontStick.x, frontStick.y)) {
+            // if (IsACorner(frontStick.x, frontStick.y, WALL_MARGIN)) {
+            //     MoveTo(ArenaWidth / 2, ArenaHeight / 2);
+            //     return true;
+            // } 
             frontStick.x = Math.Max(WALL_MARGIN, Math.Min(ArenaWidth - WALL_MARGIN, frontStick.x));
             frontStick.y = Math.Max(WALL_MARGIN, Math.Min(ArenaHeight - WALL_MARGIN, frontStick.y));
             
@@ -223,12 +245,18 @@ public class Qwuck : Bot
             double R = BearingTo(stickR.x, stickR.y);
             double F = BearingTo(frontStick.x, frontStick.y);
 
+            if (DistanceTo(stickL.x, stickL.y) < STICK_LENGTH && DistanceTo(stickR.x, stickR.y) < STICK_LENGTH) {
+                MoveTo(ArenaWidth / 2, ArenaHeight / 2);
+                return true;
+            }
+
             // Console.WriteLine(string.Format("L: {0:0.00} R: {1:0.00} F: {2:0.00}", L, R, F));
 
             double angleL = Math.Abs(L - F);
             double angleR = Math.Abs(R - F);
 
             // Console.WriteLine(string.Format("angleL: {0:0.00} angleR: {1:0.00}", angleL, angleR));
+
 
             if (Math.Abs(angleL) < Math.Abs(angleR)) {
                 MoveTo(stickL.x, stickL.y);
@@ -238,6 +266,10 @@ public class Qwuck : Bot
             return true;
         }
         return false;
+    }
+
+    private bool IsACorner(double x, double y, double margin) {
+        return (x < margin && y < margin) || (x < margin && y > ArenaHeight - margin) || (x > ArenaWidth - margin && y < margin) || (x > ArenaWidth - margin && y > ArenaHeight - margin);
     }
     private bool IsCloseToWall()
     {
@@ -274,16 +306,17 @@ public class Qwuck : Bot
 
     private void MoveTo(double x, double y, double vel = 8) {
         double turn = vel > 0 ? BearingTo(x, y) : 180 - BearingTo(x, y);
+        // Console.WriteLine(string.Format("Turn: {0:0.00}", turn));
         vel = Math.Abs(vel);
         SetTurnLeft(turn);
         double turnRadius = Math.Abs((180 - Math.Abs(turn)) / 180 * vel / (TurnRate == 0 ? 1 : TurnRate));
         double dist = DistanceTo(x, y);
-        if (turn < 30 && dist < STICK_LENGTH) {
+        if (Math.Abs(turn) < 30 && dist < STICK_LENGTH) {
             TargetSpeed = vel * dist / STICK_LENGTH;
         } else {
-            TargetSpeed = turn != 0 ? TurnRate * turnRadius : vel;
+            TargetSpeed = Math.Abs(turn != 0 ? TurnRate * turnRadius : vel);
         }
-        // Console.WriteLine(string.Format("MoveTo: {0:0.00} {1:0.00}", x, y));
+        Console.WriteLine(string.Format("MoveTo: {0:0.00} {1:0.00}", x, y));
 
     }
 

@@ -19,7 +19,7 @@ public class TestBot : Bot
 {
     static double WALL_MARGIN = 70;
     static double CORNER_MARGIN = 100;
-    static double STICK_LENGTH = 50;
+    static double STICK_LENGTH = 100;
     static double OSCILLATION_RADIUS = 60;
     static double MAX_SPEED = 8;
     static double GUN_FACTOR = 5;
@@ -69,15 +69,19 @@ public class TestBot : Bot
 
     public override void OnTick(TickEvent e) {
         // Console.WriteLine(string.Format("Safest corner: {0:0.00} {1:0.00}", corner.x, corner.y));
-        if (navigating) {
-            MoveTo(corner.x, corner.y);
-            if (DistanceTo(corner.x, corner.y) < 100) {
-                TargetSpeed = 0;
-                navigating = false;
-            }
-        } else {
-            Oscillate();
-        }
+        // if (navigating) {
+        //     double turn = BearingTo(corner.x, corner.y);
+        //     Point2D magicStick = CalcStickEnd(turn + 40 * (Math.Sin(DateTime.Now.Millisecond * 2 * Math.PI / 1100)));
+        //     MoveTo(magicStick.x, magicStick.y);
+        //     if (DistanceTo(corner.x, corner.y) < 100) {
+        //         TargetSpeed = 0;
+        //         navigating = false;
+        //     }
+        // } else {
+        //     Oscillate();
+        // }
+        Point2D stick = CalcStickEnd(170);
+        MoveTo(stick.x, stick.y);
         Console.WriteLine(string.Format("Distance to corner: {0:0.00} {1}", DistanceTo(corner.x, corner.y), navigating));
 
     }
@@ -97,21 +101,21 @@ public class TestBot : Bot
 
 // ========================== METHODS ===============================
 
+    private Point2D CalcStickEnd(double angle) {
+        double x = X + (STICK_LENGTH) * Math.Cos((Direction + angle) * Math.PI / 180);
+        double y = Y + (STICK_LENGTH) * Math.Sin((Direction + angle) * Math.PI / 180);
+        Console.WriteLine(string.Format("stick: {0:0.00} {1:0.00} length: {2:0.00}", x, y, Math.Sqrt(Math.Pow(x - X, 2) + Math.Pow(y - Y, 2))));
+        return new Point2D(x, y);
+    }
+
     private void Oscillate()
     {
-        Point2D magicStick = CalcMagicStick();
-        double theta = 20 * Math.PI / 180;
-        double newX = (magicStick.x - X) * Math.Cos(theta) - (magicStick.y - Y) * Math.Sin(theta) + X;
-        double newY = (magicStick.y - Y) * Math.Cos(theta) + (magicStick.x - Y) * Math.Sin(theta) + Y;
+        Point2D magicStick = CalcStickEnd(-20);
 
-        newX = Math.Max(WALL_MARGIN, Math.Min(ArenaWidth - WALL_MARGIN, newX));
-        newY = Math.Max(WALL_MARGIN, Math.Min(ArenaHeight - WALL_MARGIN, newY));
+        double newX = Math.Max(WALL_MARGIN, Math.Min(ArenaWidth - WALL_MARGIN, magicStick.x));
+        double newY = Math.Max(WALL_MARGIN, Math.Min(ArenaHeight - WALL_MARGIN, magicStick.y));
 
         MoveTo(newX, newY);
-        // MoveTo(0, 0);
-        // TargetSpeed = 4;S
-        double turn = RadarBearingTo(newX, newY);
-        TurnRadarLeft(turn);
         Console.WriteLine(string.Format("MoveTo: {0:0.00} {1:0.00}", newX, newY));
 
     }
@@ -148,18 +152,20 @@ public class TestBot : Bot
         return safest;
     }
 
-    private void MoveTo(double x, double y, double max_speed = 8) {
-        double turn = NormalizeRelativeAngle(BearingTo(x, y));
-        // double p = 0.5;
-        // TurnRate = p * turn;
+    private void MoveTo(double x, double y, double vel = 8) {
+        double turn = vel > 0 ? BearingTo(x, y) : 180 - BearingTo(x, y);
+        // Console.WriteLine(string.Format("Turn: {0:0.00}", turn));
+        vel = Math.Abs(vel);
         SetTurnLeft(turn);
-        double turnRadius = (180 - Math.Abs(turn)) / 180 * max_speed / (TurnRate == 0 ? 1 : TurnRate);
-        TargetSpeed = turn != 0 ? TurnRate * turnRadius : max_speed;
-        // double turn = BearingTo(x, y) * Math.PI / 180;
-        // SetTurnLeft(180 / Math.PI * Math.Tan(turn));
-        // SetForward(DistanceTo(x, y) * Math.Cos(turn));
-        // double turn = BearingTo(x, y);
-        // SetForward(DistanceTo(x, y));
+        double turnRadius = Math.Abs((180 - Math.Abs(turn)) / 180 * vel / (TurnRate == 0 ? 1 : TurnRate));
+        double dist = DistanceTo(x, y);
+        if (Math.Abs(turn) < 30 && dist < STICK_LENGTH) {
+            TargetSpeed = vel * dist / STICK_LENGTH;
+        } else {
+            TargetSpeed = Math.Abs(turn != 0 ? TurnRate * turnRadius : vel);
+        }
+        // Console.WriteLine(string.Format("MoveTo: {0:0.00} {1:0.00}", x, y));
+
     }
 
     private void TrackScanAt(double x, double y) {
@@ -207,13 +213,13 @@ public class TestBot : Bot
         SetTurnGunLeft(turn);
     }
 
-    private Point2D CalcMagicStick() {
-        double x = X + (STICK_LENGTH) * Math.Cos(Direction * Math.PI / 180);
-        double y = Y + (STICK_LENGTH) * Math.Sin(Direction * Math.PI / 180);
-        Console.WriteLine(string.Format("stick: {0:0.00} {1:0.00} length: {2:0.00}", x, y, Math.Sqrt(Math.Pow(x - X, 2) + Math.Pow(y - Y, 2))));
+    // private Point2D CalcMagicStick() {
+    //     double x = X + (STICK_LENGTH) * Math.Cos(Direction * Math.PI / 180);
+    //     double y = Y + (STICK_LENGTH) * Math.Sin(Direction * Math.PI / 180);
+    //     Console.WriteLine(string.Format("stick: {0:0.00} {1:0.00} length: {2:0.00}", x, y, Math.Sqrt(Math.Pow(x - X, 2) + Math.Pow(y - Y, 2))));
 
-        return new Point2D(x, y);
-    }
+    //     return new Point2D(x, y);
+    // }
 
 }
 
