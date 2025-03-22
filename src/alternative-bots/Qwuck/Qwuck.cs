@@ -21,6 +21,7 @@ public class Qwuck : Bot
     static double CORNER_MARGIN = 60;
     static double STICK_LENGTH = 100;
     static double OSCILLATION_RADIUS = 60;
+    static double MAX_OSCILLATING_SPEED = 8;
     static double MAX_SPEED = 8;
     static double MIN_SPEED = 2;
     private const double MAX_TURN_RATE = 15;
@@ -33,12 +34,7 @@ public class Qwuck : Bot
     static bool oneVsOne = false;
     static int targetId = -1;
     static bool targetLocked = false;
-    static double wallSmoothTurnIncr = 0.5;
-    static double wallSmoothSpeedIncr = 2;
-    static double MAX_OSCILLATING_SPEED = 8;
     
-
-
 
     static void Main()
     {
@@ -182,7 +178,6 @@ public class Qwuck : Bot
             double newX = Math.Max(WALL_MARGIN, Math.Min(ArenaWidth - WALL_MARGIN, walkStick.x));
             double newY = Math.Max(WALL_MARGIN, Math.Min(ArenaHeight - WALL_MARGIN, walkStick.y));
 
-            double a = 3;
             MoveTo(newX, newY, MAX_OSCILLATING_SPEED);
         }
     }
