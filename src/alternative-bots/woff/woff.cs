@@ -6,35 +6,31 @@ using Robocode.TankRoyale.BotApi;
 using Robocode.TankRoyale.BotApi.Events;
 
 // ------------------------------------------------------------------
-// rwar
+// woff 🐶
 // ------------------------------------------------------------------
 // Targeting: Play It Forward
-// Movement: Minimum Risk Movement
+// Movement: Minimum Risk
 // ------------------------------------------------------------------
 /*
 
-
+🐕🐕🐕
 
 */
 // ------------------------------------------------------------------
-public class Rwar : Bot
+public class Woff : Bot
 {
     // Knobs
+    private readonly static double  ENEMY_ENERGY_THRESHOLD = 1.3;
     private readonly static double  MOVE_WALL_MARGIN = 25;
     private readonly static double  GUN_FACTOR = 10;
     private readonly static double  MIN_ENERGY = 10;
-    private readonly static double  ENEMY_ENERGY_THRESHOLD = 1;
     private readonly static double  RADAR_LOCK = 0.7;
-    private readonly static double  MIN_RADIUS = 80;
-    private readonly static double  MAX_RADIUS = 200;
+    private readonly static double  MIN_RADIUS = 200;
+    private readonly static double  MAX_RADIUS = 300;
     private readonly static double  POINT_COUNT = 36;
-    private readonly static double  MOVE_PADDING = 10;
     private readonly static int     MAX_DATA = 100;
 
     // Global variables
-    static bool ram;
-    static double ramX;
-    static double ramY;
     static int targetId;
     static double targetDistance;
     static double enemyDistance;
@@ -46,56 +42,64 @@ public class Rwar : Bot
 
     static Dictionary<int, EnemyData> enemyData = new Dictionary<int, EnemyData>();
 
+    static List<Bullet> bullets;
+
     static void Main()
     {
-        new Rwar().Start();
+        new Woff().Start();
     }
 
-    Rwar() : base(BotInfo.FromFile("rwar.json")) { }
+    Woff() : base(BotInfo.FromFile("woff.json")) { }
 
     public override void Run()
     {
-        BodyColor = Color.Red;
-        TurretColor = Color.Yellow;
-        RadarColor = Color.Orange;
-        BulletColor = Color.Red;
-        ScanColor = Color.Orange;
+        RadarColor = Color.White;
 
         SetTurnRadarRight(double.PositiveInfinity);
         AdjustGunForBodyTurn = true;
         AdjustRadarForGunTurn = true;
         AdjustRadarForBodyTurn = true;
 
-        ram = false;
         targetDistance = double.PositiveInfinity;
         enemyDistance = double.PositiveInfinity;
+        bullets = new List<Bullet>();
     }
 
     public override void OnTick(TickEvent e)
     {
         TurretColor = Color.FromArgb(rand.Next(256), rand.Next(256), rand.Next(256));
+        BulletColor = Color.FromArgb(rand.Next(256), rand.Next(256), rand.Next(256));
+        ScanColor = Color.FromArgb(105, 105, rand.Next(256));
+        BodyColor = ScanColor;
 
-        // GOOO!!!
-        if (ram)
+        for (int i = bullets.Count - 1; i >= 0; i--)
         {
-            ScanColor = Color.FromArgb(rand.Next(256), rand.Next(256), rand.Next(256));
-            SetTurnLeft(NormalizeRelativeAngle(BearingTo(ramX, ramY)));
-            SetForward(DistanceTo(ramX, ramY));
-            return;
+            Bullet bullet = bullets[i];
+            bullet.X += bullet.Speed * Math.Cos(bullet.Direction);
+            bullet.Y += bullet.Speed * Math.Sin(bullet.Direction);
+            // Console.WriteLine("BulletId: " + i + " X: " + bullet.X + " Y: " + bullet.Y);
+
+            if (bullet.X < 0 - MOVE_WALL_MARGIN * 2 || bullet.X > ArenaWidth + MOVE_WALL_MARGIN * 2 || 
+                bullet.Y < 0 - MOVE_WALL_MARGIN * 2 || bullet.Y > ArenaHeight + MOVE_WALL_MARGIN * 2)
+            {
+                bullets.RemoveAt(i);
+            }
+            else 
+            {
+                bullets[i] = bullet;
+            }
         }
 
         // Minimum Risk Movement
-        if (DistanceRemaining < MOVE_PADDING) 
-        {
-            double bestX = X;
-            double bestY = Y;
-            double minRisk = double.PositiveInfinity;
+        double bestX = X;
+        double bestY = Y;
+        double minRisk = double.PositiveInfinity;
 
-            for (int i = 0; i < POINT_COUNT; i++)
-            {
-                double theta = (2 * Math.PI / POINT_COUNT) * i;
-                
-                double u = rand.NextDouble();
+        for (int i = 0; i < POINT_COUNT; i++)
+        {
+            double theta = (2 * Math.PI / POINT_COUNT) * i;
+            
+            for (int u = 0; u <= 1; u++) {
                 double r = Math.Sqrt(u * (MAX_RADIUS * MAX_RADIUS - MIN_RADIUS * MIN_RADIUS) + MIN_RADIUS * MIN_RADIUS);
                 
                 double x = X + r * Math.Cos(theta);
@@ -115,7 +119,10 @@ public class Rwar : Bot
                     bestY = y;
                 }
             }
+        }
 
+        if (minRisk < CalcRisk(destX, destY) * 0.9)
+        {
             destX = bestX;
             destY = bestY;
         }
@@ -127,14 +134,6 @@ public class Rwar : Bot
 
     public override void OnScannedBot(ScannedBotEvent e)
     {
-        // Ram toggle
-        if (ram || (EnemyCount == 1 && e.Energy < ENEMY_ENERGY_THRESHOLD))
-        {
-            ram = true;
-            ramX = e.X;
-            ramY = e.Y;
-        }
-
         // Update enemy data
         if (!enemyData.ContainsKey(e.ScannedBotId))
         {
@@ -144,7 +143,6 @@ public class Rwar : Bot
         data.LastX = e.X;
         data.LastY = e.Y;
         data.IsAlive = true;
-        data.LastEnergy = e.Energy;
 
         // Lock closest target
         double scannedDistance = enemyDistance = DistanceTo(e.X, e.Y);
@@ -174,9 +172,25 @@ public class Rwar : Bot
 
         double bulletSpeed = CalcBulletSpeed(firePower);
         double currentDirection = e.Direction * Math.PI / 180.0;
-        double enemySpeed = e.Speed;
+
+        // Input Virtual Bullets
+        double energyDrop = data.LastEnergy - e.Energy;
+        if (0.11 < energyDrop && energyDrop <= 3)
+        {
+            AddVirtualBullet(e.X, e.Y, CalcBulletSpeed(energyDrop), energyDrop);
+            // Console.WriteLine("Bullet Speed: " + CalcBulletSpeed(energyDrop) + " Power: " + energyDrop);
+        }
+        data.LastEnergy = e.Energy;
 
         // Input Markov Chain
+        double currentSpeed = e.Speed;
+        double acceleration = 0;
+        if (data.HasPrevious)
+        {
+            acceleration = currentSpeed - data.LastSpeed;
+        }
+        data.LastSpeed = currentSpeed;
+        
         double angularVelocity = 0;
         if (data.HasPrevious)
         {
@@ -185,7 +199,7 @@ public class Rwar : Bot
         data.LastDirection = currentDirection;
         data.HasPrevious = true;
 
-        State currentState = new State(angularVelocity);
+        State currentState = new State(angularVelocity, currentSpeed, acceleration);
         data.StateHistory.Add(currentState);
         if (data.StateHistory.Count > MAX_DATA)
         {
@@ -205,6 +219,7 @@ public class Rwar : Bot
         double predictedX = e.X;
         double predictedY = e.Y;
         double predictedDirection = currentDirection;
+        double predictedSpeed = currentSpeed;
         double simAngularVelocity = angularVelocity;
         State simCurrentState = currentState;
         int time = 0;
@@ -214,11 +229,12 @@ public class Rwar : Bot
             {
                 State nextState = GetMostFrequentTransition(data.MarkovChain[simCurrentState]);
                 simAngularVelocity = nextState.AngularVelocity / 1000.0;
+                predictedSpeed += nextState.Acceleration;
                 simCurrentState = nextState;
             }
             predictedDirection += simAngularVelocity;
-            predictedX += enemySpeed * Math.Cos(predictedDirection);
-            predictedY += enemySpeed * Math.Sin(predictedDirection);
+            predictedX += predictedSpeed * Math.Cos(predictedDirection);
+            predictedY += predictedSpeed * Math.Sin(predictedDirection);
             time++;
         }
 
@@ -240,18 +256,68 @@ public class Rwar : Bot
         }
     }
 
+    public override void OnBulletFired(BulletFiredEvent e)
+    {
+        // Console.WriteLine("BulletId: " + e.Bullet.BulletId + " X: " + e.Bullet.X + " Y: " + e.Bullet.Y);
+        // bullets[e.Bullet.BulletId] = new Bullet
+        // {
+        //     X = e.Bullet.X,
+        //     Y = e.Bullet.Y,
+        //     Speed = CalcBulletSpeed(e.Bullet.Power),
+        //     Direction = e.Bullet.Direction * Math.PI / 180
+        // };
+    }
+
+    public override void OnBulletHit(BulletHitBotEvent e)
+    {
+        // Console.WriteLine("Bullet Hit Bullet " + e.Bullet.BulletId + " Owner: " + e.Bullet.OwnerId);
+        // if (e.Bullet.OwnerId == MyId)
+        // {
+        //     bullets.Remove(e.Bullet.BulletId);
+        // }
+    }
+
+    public override void OnBulletHitBullet(BulletHitBulletEvent e)
+    {
+        // Console.WriteLine("Bullet Hit Bullet " + e.Bullet.BulletId + " Owner: " + e.Bullet.OwnerId);
+        // if (e.Bullet.OwnerId == MyId)
+        // {
+        //     bullets.Remove(e.Bullet.BulletId);
+        // }
+    }
+
+    public override void OnBulletHitWall(BulletHitWallEvent e)
+    {
+        // Console.WriteLine("Bullet Hit Wall " + e.Bullet.BulletId + " Owner: " + e.Bullet.OwnerId);
+        // if (e.Bullet.OwnerId == MyId)
+        // {
+        //     bullets.Remove(e.Bullet.BulletId);
+        // }
+    }
+
+    public override void OnHitByBullet(HitByBulletEvent e)
+    {
+        // Console.WriteLine("Hit by bullet " + e.Bullet.BulletId + " Owner: " + e.Bullet.OwnerId);
+        // if (e.Bullet.OwnerId == MyId)
+        // {
+        //     bullets.Remove(e.Bullet.BulletId);
+        // }
+    }
+
     // --- Helper Functions ---
     private State GetMostFrequentTransition(List<State> transitions)
     {
+        List<State> transitionsCopy = new List<State>(transitions);
+        
         Dictionary<State, int> frequency = new Dictionary<State, int>();
-        foreach (State state in transitions)
+        foreach (State state in transitionsCopy)
         {
             if (frequency.ContainsKey(state))
                 frequency[state]++;
             else
                 frequency[state] = 1;
         }
-        State bestState = transitions[0];
+        State bestState = transitionsCopy[0];
         int bestCount = 0;
         foreach (var kvp in frequency)
         {
@@ -272,42 +338,99 @@ public class Rwar : Bot
         {
             if (enemy.IsAlive)
             {
-                double energyFactor = enemy.LastEnergy;
-
-                double distanceSq = Math.Pow(candidateX - enemy.LastX, 2) + Math.Pow(candidateY - enemy.LastY, 2);
-                if (distanceSq < 1e-6)
-                    distanceSq = 1e-6;
-
-                risk += energyFactor / distanceSq;
+                risk += 300 * (enemy.LastEnergy - ENEMY_ENERGY_THRESHOLD) / (distanceSq(candidateX, candidateY, enemy.LastX, enemy.LastY) + 1e-6);
             }
+        }
+
+        risk += 10 * rand.NextDouble() / (Math.Pow(DistanceTo(candidateX, candidateY), 2) + 1e-6);
+        // risk += rand.NextDouble() / (2 * distanceSq(ArenaWidth / 2, ArenaHeight / 2, candidateX, candidateY) + 1e-6);
+
+        foreach (Bullet bullet in bullets)
+        {
+            Line2D bulletLine = new Line2D(
+                bullet.X - Math.Cos(bullet.Direction) * 10000, 
+                bullet.Y - Math.Sin(bullet.Direction) * 10000, 
+                bullet.X + Math.Cos(bullet.Direction) * 10000, 
+                bullet.Y + Math.Sin(bullet.Direction) * 10000
+            );
+            
+            double d = bulletLine.DistanceToPoint(candidateX, candidateY);
+            risk += 10 * bullet.Power / (d * d + 1e-6);
         }
 
         return risk;
     }
-
+    
+    private void AddVirtualBullet(double x, double y, double speed, double power)
+    {
+        // Head on
+        double headOnDirection = (180 + DirectionTo(x, y)) * Math.PI / 180;
+        Bullet bullet = new Bullet
+        {
+            Speed = speed,
+            Direction = headOnDirection,
+            X = x,
+            Y = y,
+            Power = power
+        };
+        bullets.Add(bullet);
+        
+        // Linear
+        double linearX = x - speed * Math.Cos(Direction);
+        double linearY = y - speed * Math.Sin(Direction);
+        double linearDirection = 180 + DirectionTo(linearX, linearY);
+        Bullet bulletLinear = new Bullet
+        {
+            Speed = speed,
+            Direction = linearDirection,
+            X = x,
+            Y = y,
+            Power = power * 2
+        };
+        bullets.Add(bulletLinear);
+    }
+    
+    private double distanceSq(double x1, double y1, double x2, double y2)
+    {
+        return Math.Pow(x1 - x2, 2) + Math.Pow(y1 - y2, 2);
+    }
 }
 
 public struct State
 {
     public int AngularVelocity; // quantized: radian * 1000
+    public int Speed; // -8 -- 8
+    public int Acceleration; // -1 -- 1
 
-    public State(double angularVelocity)
+    public State(double angularVelocity, double speed, double acceleration)
     {
         AngularVelocity = (int)(angularVelocity * 1000);
+
+        Speed = (int)Math.Round(speed);
+        
+        double threshold = 0.1; 
+        if (acceleration < -threshold)
+            Acceleration = -1;
+        else if (acceleration > threshold)
+            Acceleration = 1;
+        else
+            Acceleration = 0;
     }
 
     public override bool Equals(object obj)
     {
         if (obj is State state)
         {
-            return state.AngularVelocity == AngularVelocity;
+            return state.AngularVelocity == AngularVelocity &&
+                   state.Speed == Speed &&
+                   state.Acceleration == Acceleration;
         }
         return false;
     }
 
     public override int GetHashCode()
     {
-        return AngularVelocity.GetHashCode();
+        return AngularVelocity.GetHashCode() ^ Speed.GetHashCode() ^ Acceleration.GetHashCode();
     }
 }
 
@@ -321,5 +444,37 @@ public class EnemyData
     public double LastX { get; set; }
     public double LastY { get; set; }
     public double LastEnergy { get; set; }
+    public double LastSpeed { get; set; }
     public bool IsAlive { get; set; } = true;
+}
+
+public struct Bullet
+{
+    public double X;
+    public double Y;
+    public double Speed;
+    public double Direction;
+    public double Power;
+}
+
+public class Line2D
+{
+    public double X1 { get; }
+    public double Y1 { get; }
+    public double X2 { get; }
+    public double Y2 { get; }
+
+    public Line2D(double x1, double y1, double x2, double y2)
+    {
+        X1 = x1;
+        Y1 = y1;
+        X2 = x2;
+        Y2 = y2;
+    }
+
+    public double DistanceToPoint(double px, double py)
+    {
+        return Math.Abs((Y2 - Y1) * px - (X2 - X1) * py + (X2 * Y1 - Y2 * X1)) 
+                / Math.Sqrt(Math.Pow(Y2 - Y1, 2) + Math.Pow(X2 - X1, 2));
+    }
 }
