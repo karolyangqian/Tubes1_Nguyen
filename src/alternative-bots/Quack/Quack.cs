@@ -6,10 +6,8 @@ using Robocode.TankRoyale.BotApi.Events;
 // ------------------------------------------------------------------
 // Quack
 // ------------------------------------------------------------------
-// A sample bot original made for Robocode by Mathew Nelson.
-// Ported to Robocode Tank Royale by Flemming N. Larsen.
-//
-// Sits still. Tracks and fires at the nearest bot it sees.
+// Targeting: linear
+// Movement: random speed and turn rate
 // ------------------------------------------------------------------
 public class Quack : Bot
 {
@@ -22,6 +20,7 @@ public class Quack : Bot
     private const double maxSpeed = 10;
     private const double maxTurnRate = 15;
     private const double minTurnRate = 5;
+    private const double GUN_FACTOR = 10;
 
 
     // The main method starts our bot
@@ -83,7 +82,7 @@ public class Quack : Bot
         }
         // TargetSpeed =  rnd.NextDouble() * GetRandomSign();
         // TurnRate += rnd.NextDouble() * GetRandomSign();
-        Console.WriteLine(string.Format("GunHeat: {0:0.00} Energy: {1:0.00}", GunHeat, Energy));
+        // Console.WriteLine(string.Format("GunHeat: {0:0.00} Energy: {1:0.00}", GunHeat, Energy));
     }
 
     public override void OnScannedBot(ScannedBotEvent e)
@@ -112,7 +111,7 @@ public class Quack : Bot
 
     private void TrackScanAt(double x, double y) {
         var bearingFromRadar = NormalizeRelativeAngle(RadarBearingTo(x, y));
-        SetTurnRadarLeft(bearingFromRadar + (bearingFromRadar > 0 ? 10 : -10));
+        SetTurnRadarLeft(bearingFromRadar + (bearingFromRadar > 0 ? 20 : -20));
         // bearingFromRadar = RadarBearingTo(x, y);
         // TurnRadarLeft(bearingFromRadar - 10);
     }
@@ -153,22 +152,25 @@ public class Quack : Bot
         double predictedX = targetX + targetSpeed * time * Math.Cos(enemyDir);
         double predictedY = targetY + targetSpeed * time * Math.Sin(enemyDir);
         
-        double bearingFromGun = GunBearingTo(predictedX, predictedY);
+        double angleToPredicted = GunBearingTo(predictedX, predictedY);
+        double angleToEnemy = GunBearingTo(targetX, targetY);
+        double turn = angleToPredicted > angleToEnemy ? angleToPredicted - 5 : angleToPredicted + 5;
         
         SetFire(firePower);
-        SetTurnGunLeft(bearingFromGun);
+        SetTurnGunLeft(turn);
     }
 
     private double CalculateFirePower(double targetX, double targetY) {
-        double MAX_POWER_RADIUS = Math.Sqrt(ArenaHeight * ArenaHeight + ArenaWidth * ArenaWidth) * 0.3;
-        double MIN_POWER_RADIUS = MAX_POWER_RADIUS * 0.2;
-        double MAX_POWER = 3;
-        double MIN_POWER = 0.5;
+        // double MAX_POWER_RADIUS = Math.Sqrt(ArenaHeight * ArenaHeight + ArenaWidth * ArenaWidth) * 0.3;
+        // double MIN_POWER_RADIUS = MAX_POWER_RADIUS * 0.2;
+        // double MAX_POWER = 3;
+        // double MIN_POWER = 0.5;
 
-        double dist = DistanceTo(targetX, targetY);
-        double val = dist > MAX_POWER_RADIUS ? MAX_POWER_RADIUS : dist < MIN_POWER_RADIUS ? MIN_POWER_RADIUS : dist;
-        double factor = (MAX_POWER_RADIUS - MIN_POWER_RADIUS - (val - MIN_POWER_RADIUS)) / (MAX_POWER_RADIUS - MIN_POWER_RADIUS);
-        return MIN_POWER + factor * (MAX_POWER - MIN_POWER);
+        // double dist = DistanceTo(targetX, targetY);
+        // double val = dist > MAX_POWER_RADIUS ? MAX_POWER_RADIUS : dist < MIN_POWER_RADIUS ? MIN_POWER_RADIUS : dist;
+        // double factor = (MAX_POWER_RADIUS - MIN_POWER_RADIUS - (val - MIN_POWER_RADIUS)) / (MAX_POWER_RADIUS - MIN_POWER_RADIUS);
+        // return MIN_POWER + factor * (MAX_POWER - MIN_POWER);
+        return Energy / DistanceTo(targetX, targetY) * GUN_FACTOR;
     }
 
 // ================================ UTILS ==================================
