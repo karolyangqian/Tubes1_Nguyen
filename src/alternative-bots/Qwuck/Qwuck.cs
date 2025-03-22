@@ -299,23 +299,23 @@ public class Qwuck : Bot
     }
 
     private void ShootPredict(double targetX, double targetY, double targetSpeed, double targetDirection, double firePower) {
-        double bulletSpeed = CalcBulletSpeed(firePower);
+        // double bulletSpeed = CalcBulletSpeed(firePower);
 
-        double enemyDir = targetDirection * Math.PI / 180.0;
+        // double enemyDir = targetDirection * Math.PI / 180.0;
         
-        double time = DistanceTo(targetX, targetY) / bulletSpeed;
+        // double time = DistanceTo(targetX, targetY) / bulletSpeed;
         
-        double predictedX = targetX + targetSpeed * time * Math.Cos(enemyDir);
-        double predictedY = targetY + targetSpeed * time * Math.Sin(enemyDir);
+        // double predictedX = targetX + targetSpeed * time * Math.Cos(enemyDir);
+        // double predictedY = targetY + targetSpeed * time * Math.Sin(enemyDir);
         
-        double angleToPredicted = GunBearingTo(predictedX, predictedY);
-        double angleToEnemy = GunBearingTo(targetX, targetY);
-        double turn = angleToPredicted > angleToEnemy ? angleToPredicted - 2 : angleToPredicted + 2;
-        // double turn = GunBearingTo(targetX, targetY);
-        // SetTurnGunLeft(turn);
+        // double angleToPredicted = GunBearingTo(predictedX, predictedY);
+        // double angleToEnemy = GunBearingTo(targetX, targetY);
+        // double turn = angleToPredicted > angleToEnemy ? angleToPredicted - 2 : angleToPredicted + 2;
         // double mea = NormalizeRelativeAngle(Math.Asin(targetSpeed / CalcBulletSpeed(firePower)) * 180 / Math.PI);
         // Console.WriteLine(string.Format("MEA: {0:0.00} turn: {1:0.00}", mea, turn));
 
+        double turn = GunBearingTo(targetX, targetY);
+        SetTurnGunLeft(turn);
         SetFire(firePower);
         SetTurnGunLeft(turn);
     }
