@@ -13,7 +13,30 @@ using Robocode.TankRoyale.BotApi.Events;
 // ------------------------------------------------------------------
 /*
 
-🐕🐕🐕
+🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕
+
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣾⣿⣿⣿⣦⣴⣶⣶⣦⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢻⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣤⣤⣤⣤⣤⣤⣤⣤⣀⣀⣀⠀⠀⠀⠀⢻⣿⣿⣿⣿⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣤⣶⠿⠟⠛⠛⠋⠉⠉⠉⠉⠉⠉⠛⠛⠛⠿⢷⣦⣤⣀⡹⠿⠿⠛⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⣠⣤⣴⣶⣶⣾⠟⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠙⠻⣿⣿⣶⣶⣶⣤⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⣴⣿⠟⠉⠀⠀⠙⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠟⠀⠀⠀⠉⠙⢿⣦⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⣠⣿⡟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢦⣽⣿⡄⠀⠀⠀⠀⠀
+⠀⠀⠀⣰⣿⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⣿⣷⠀⠀⠀⠀⠀
+⠀⠀⢰⣿⡏⣤⠀⠀⠀⠀⠀⢀⡼⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢰⣻⡀⠀⠀⢤⢠⣼⣿⡆⠀⠀⠀⠀
+⠀⠀⠀⢿⣿⠁⠀⠀⠀⠀⣴⡾⠁⠀⠀⠀⢀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣀⠀⠀⠀⠀⠀⠈⢻⣇⠀⠀⠈⣇⣿⣿⠀⠀⠀⠀⠀
+⠀⠀⠀⢸⣿⠀⡀⣀⠀⢠⣿⠃⠀⠀⢀⣾⣿⣿⡿⠆⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿⣿⡷⠀⠀⠀⠀⠀⢸⣿⠀⢠⣠⣿⣿⠇⠀⠀⠀⠀⠀
+⠀⠀⠀⠈⢿⣷⣇⣽⠀⢈⡏⠀⠀⠀⠸⣿⣿⣿⣦⣤⠀⠀⠀⠀⠀⠀⠀⠀⠀⢻⣿⣿⣧⣤⠥⠀⠀⠀⠀⣿⣿⣧⣾⣿⠟⠁⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠈⠛⠿⣿⣧⣾⣿⡄⠀⠀⠀⠙⠿⠿⠿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠛⠛⠛⠋⠀⠀⠀⠀⠀⢸⣿⡿⠋⠁⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⣿⡇⣴⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣤⣤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠐⢶⣼⣿⣀⣠⣤⣤⣤⣀⠀⠀⠀⠀⠀
+⠀⠀⣠⣶⣾⠿⠛⠛⠻⢷⣿⣿⠁⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿⣿⣿⡆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⣿⣿⡿⠋⠉⠉⠉⠛⢿⣦⡀⠀⠀
+⢀⣾⡿⠋⠀⠀⠀⠀⠀⠀⠙⣿⡆⢀⠀⠀⠀⠀⠀⠀⠀⠘⢿⣿⣿⠟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣤⣿⡟⠀⠀⠀⠀⠀⠀⠀⠹⣿⡆⠀
+⣼⡿⠁⠀⠀⠀⠀⠀⠀⠀⠀⣸⣷⣿⣷⣧⠀⢀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣄⠀⢠⡾⣠⣇⣠⣿⣿⣿⡇⠀⢀⠀⠀⠀⢀⠀⠀⢹⣷⠀
+⣿⣷⡀⠀⣷⠀⠀⠀⣼⣦⣴⣿⠏⠙⠻⠿⣷⡿⠷⣶⣶⡾⠿⠿⠷⢶⣶⣦⣤⣾⣿⣷⣿⣿⠿⠿⠛⠛⠙⠻⣿⣤⣾⣇⠀⢀⣸⣇⣀⣼⣿⠃
+⠘⢿⣿⣾⣿⣷⣴⣾⡿⠟⠋⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠙⠛⠻⠿⠿⠿⠟⠛⠛⠁⠀
+
+🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕
 
 */
 // ------------------------------------------------------------------
@@ -184,18 +207,10 @@ public class Woff : Bot
 
         // Input Markov Chain
         double currentSpeed = e.Speed;
-        double acceleration = 0;
-        if (data.HasPrevious)
-        {
-            acceleration = currentSpeed - data.LastSpeed;
-        }
+        double acceleration = data.HasPrevious ? currentSpeed - data.LastSpeed : 0;
         data.LastSpeed = currentSpeed;
-        
-        double angularVelocity = 0;
-        if (data.HasPrevious)
-        {
-            angularVelocity = (currentDirection - data.LastDirection + Math.PI) % (2 * Math.PI) - Math.PI;
-        }
+        double angularVelocity = data.HasPrevious ? (currentDirection - data.LastDirection + Math.PI) % (2 * Math.PI) - Math.PI : 0;
+ 
         data.LastDirection = currentDirection;
         data.HasPrevious = true;
 
@@ -228,7 +243,7 @@ public class Woff : Bot
             if (data.MarkovChain.ContainsKey(simCurrentState) && data.MarkovChain[simCurrentState].Count > 0)
             {
                 State nextState = GetMostFrequentTransition(data.MarkovChain[simCurrentState]);
-                simAngularVelocity = nextState.AngularVelocity / 1000.0;
+                simAngularVelocity = nextState.AngularVelocity / 256.0;
                 predictedSpeed += nextState.Acceleration;
                 simCurrentState = nextState;
             }
@@ -254,54 +269,6 @@ public class Woff : Bot
         {
             targetDistance = double.PositiveInfinity;
         }
-    }
-
-    public override void OnBulletFired(BulletFiredEvent e)
-    {
-        // Console.WriteLine("BulletId: " + e.Bullet.BulletId + " X: " + e.Bullet.X + " Y: " + e.Bullet.Y);
-        // bullets[e.Bullet.BulletId] = new Bullet
-        // {
-        //     X = e.Bullet.X,
-        //     Y = e.Bullet.Y,
-        //     Speed = CalcBulletSpeed(e.Bullet.Power),
-        //     Direction = e.Bullet.Direction * Math.PI / 180
-        // };
-    }
-
-    public override void OnBulletHit(BulletHitBotEvent e)
-    {
-        // Console.WriteLine("Bullet Hit Bullet " + e.Bullet.BulletId + " Owner: " + e.Bullet.OwnerId);
-        // if (e.Bullet.OwnerId == MyId)
-        // {
-        //     bullets.Remove(e.Bullet.BulletId);
-        // }
-    }
-
-    public override void OnBulletHitBullet(BulletHitBulletEvent e)
-    {
-        // Console.WriteLine("Bullet Hit Bullet " + e.Bullet.BulletId + " Owner: " + e.Bullet.OwnerId);
-        // if (e.Bullet.OwnerId == MyId)
-        // {
-        //     bullets.Remove(e.Bullet.BulletId);
-        // }
-    }
-
-    public override void OnBulletHitWall(BulletHitWallEvent e)
-    {
-        // Console.WriteLine("Bullet Hit Wall " + e.Bullet.BulletId + " Owner: " + e.Bullet.OwnerId);
-        // if (e.Bullet.OwnerId == MyId)
-        // {
-        //     bullets.Remove(e.Bullet.BulletId);
-        // }
-    }
-
-    public override void OnHitByBullet(HitByBulletEvent e)
-    {
-        // Console.WriteLine("Hit by bullet " + e.Bullet.BulletId + " Owner: " + e.Bullet.OwnerId);
-        // if (e.Bullet.OwnerId == MyId)
-        // {
-        //     bullets.Remove(e.Bullet.BulletId);
-        // }
     }
 
     // --- Helper Functions ---
@@ -343,7 +310,6 @@ public class Woff : Bot
         }
 
         risk += 10 * rand.NextDouble() / (Math.Pow(DistanceTo(candidateX, candidateY), 2) + 1e-6);
-        // risk += rand.NextDouble() / (2 * distanceSq(ArenaWidth / 2, ArenaHeight / 2, candidateX, candidateY) + 1e-6);
 
         foreach (Bullet bullet in bullets)
         {
@@ -398,13 +364,13 @@ public class Woff : Bot
 
 public struct State
 {
-    public int AngularVelocity; // quantized: radian * 1000
-    public int Speed; // -8 -- 8
-    public int Acceleration; // -1 -- 1
+    public int AngularVelocity; // quantized: radian * 256
+    public int Speed;           // -8 -- 8
+    public int Acceleration;    // -1 -- 1
 
     public State(double angularVelocity, double speed, double acceleration)
     {
-        AngularVelocity = (int)(angularVelocity * 1000);
+        AngularVelocity = (int)(angularVelocity * 256);
 
         Speed = (int)Math.Round(speed);
         
