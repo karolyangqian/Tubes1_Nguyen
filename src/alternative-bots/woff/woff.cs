@@ -46,12 +46,17 @@ public class Woff : Bot
     private readonly static double  ENEMY_ENERGY_THRESHOLD = 1.3;
     private readonly static double  MOVE_WALL_MARGIN = 25;
     private readonly static double  GUN_FACTOR = 5;
-    private readonly static double  MIN_ENERGY = 10;
+    private readonly static double  MIN_ENERGY = 12;
     private readonly static double  RADAR_LOCK = 0.7;
     private readonly static double  MIN_RADIUS = 200;
     private readonly static double  MAX_RADIUS = 300;
     private readonly static double  POINT_COUNT = 36;
+    private readonly static double  MIN_DIVISOR = 1e-6;
     private readonly static int     MAX_DATA = 100;
+    private readonly static int     BULLET_OFFSET_ARENA = 50;
+    private readonly static int     ENEMY_GRAVITY_CONSTANT = 300;
+    private readonly static int     BULLET_GRAVITY_CONSTANT = 10;
+    private readonly static int     LAST_LOC_GRAVITY_CONSTANT = 10;
 
     // Global variables
     static int targetId;
@@ -76,7 +81,7 @@ public class Woff : Bot
 
     public override void Run()
     {
-        Console.WriteLine("Woff woff woff 🐶! || round: " + RoundNumber);
+        Console.WriteLine("Woff woff woff 🐶! |---| round: " + RoundNumber);
         RadarColor = Color.White;
 
         SetTurnRadarRight(double.PositiveInfinity);
@@ -92,7 +97,7 @@ public class Woff : Bot
     public override void OnTick(TickEvent e)
     {
         TurretColor = Color.FromArgb(rand.Next(256), rand.Next(256), rand.Next(256));
-        BulletColor = Color.FromArgb(rand.Next(256), rand.Next(256), rand.Next(256));
+        BulletColor = Color.FromArgb(255, 200 + rand.Next(50), 200 + rand.Next(50));
         ScanColor = Color.FromArgb(105, 105, rand.Next(256));
         BodyColor = ScanColor;
 
@@ -103,8 +108,8 @@ public class Woff : Bot
             bullet.Y += bullet.Speed * Math.Sin(bullet.Direction);
             // Console.WriteLine("BulletId: " + i + " X: " + bullet.X + " Y: " + bullet.Y);
 
-            if (bullet.X < 0 - MOVE_WALL_MARGIN * 2 || bullet.X > ArenaWidth + MOVE_WALL_MARGIN * 2 || 
-                bullet.Y < 0 - MOVE_WALL_MARGIN * 2 || bullet.Y > ArenaHeight + MOVE_WALL_MARGIN * 2)
+            if (bullet.X < 0 - BULLET_OFFSET_ARENA || bullet.X > ArenaWidth + BULLET_OFFSET_ARENA || 
+                bullet.Y < 0 - BULLET_OFFSET_ARENA || bullet.Y > ArenaHeight + BULLET_OFFSET_ARENA)
             {
                 bullets.RemoveAt(i);
             }
@@ -281,11 +286,10 @@ public class Woff : Bot
         {
             if (enemy.IsAlive)
             {
-                risk += 300 * (enemy.LastEnergy - ENEMY_ENERGY_THRESHOLD) / (distanceSq(candidateX, candidateY, enemy.LastX, enemy.LastY) + 1e-6);
+                risk += ENEMY_GRAVITY_CONSTANT * (enemy.LastEnergy - ENEMY_ENERGY_THRESHOLD) / 
+                        (distanceSq(candidateX, candidateY, enemy.LastX, enemy.LastY) + MIN_DIVISOR);
             }
         }
-
-        risk += 10 * rand.NextDouble() / (Math.Pow(DistanceTo(candidateX, candidateY), 2) + 1e-6);
 
         foreach (Bullet bullet in bullets)
         {
@@ -297,8 +301,12 @@ public class Woff : Bot
             );
             
             double d = bulletLine.DistanceToPoint(candidateX, candidateY);
-            risk += 10 * bullet.Power / (d * d + 1e-6);
+            risk += BULLET_GRAVITY_CONSTANT * bullet.Power / (d * d + MIN_DIVISOR);
+
         }
+
+        risk += LAST_LOC_GRAVITY_CONSTANT * rand.NextDouble() / 
+                (Math.Pow(DistanceTo(candidateX, candidateY), 2) + MIN_DIVISOR);
 
         return risk;
     }
