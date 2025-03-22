@@ -35,7 +35,7 @@ public class Qwuck : Bot
     static bool targetLocked = false;
     static double wallSmoothTurnIncr = 0.5;
     static double wallSmoothSpeedIncr = 2;
-    static double oscillatingSpeed = 8;
+    static double MAX_OSCILLATING_SPEED = 8;
     
 
 
@@ -174,69 +174,22 @@ public class Qwuck : Bot
 
     private void Oscillate()
     {
-        // TargetSpeed = OSCILLATION_RADIUS * TurnRate * Math.PI / 180;
-        // TurnRate = 7 +  5 * Math.Sin(DateTime.UtcNow.Millisecond);
-        // double v = 3;
-
         if (!WallSmoothing()) {
             double turn = 20 + 40 * (Math.Sin(DateTime.Now.Millisecond * 2 * Math.PI / 1400));
             Console.WriteLine(string.Format("Turn: {0:0.00}", turn));
             Point2D walkStick = CalcStickEnd(turn);
-            // double theta = 15 * Math.PI / 180;
-            // double newX = (walkStick.x - X) * Math.Cos(theta) - (walkStick.y - Y) * Math.Sin(theta) + X;
-            // double newY = (walkStick.y - Y) * Math.Cos(theta) + (walkStick.x - Y) * Math.Sin(theta) + Y;
 
             double newX = Math.Max(WALL_MARGIN, Math.Min(ArenaWidth - WALL_MARGIN, walkStick.x));
             double newY = Math.Max(WALL_MARGIN, Math.Min(ArenaHeight - WALL_MARGIN, walkStick.y));
 
             double a = 3;
-            MoveTo(newX, newY, oscillatingSpeed);
-            // double newSpeed = TargetSpeed + random.NextDouble()*2 * (random.NextDouble() > 0.4 ? 1 : -1);
-            // if (newSpeed > MIN_SPEED && newSpeed < MAX_SPEED) {
-            //     TargetSpeed = newSpeed;
-            // }
-
-            // double newTurnRate = TurnRate + random.NextDouble()*2 * (random.NextDouble() > 0.4 ? 1 : -1);
-            // if (newTurnRate > MIN_TURN_RATE && newTurnRate < MAX_TURN_RATE) {
-            //     TurnRate = newTurnRate;
-            // }
-            // Console.WriteLine("newSpeed: {0:0.00} newTR: {1:0.00}", newSpeed, newTurnRate);
-
+            MoveTo(newX, newY, MAX_OSCILLATING_SPEED);
         }
-
-
-        // if (IsOutsideArena(magicStick.x, magicStick.y)) {
-        //     TargetSpeed = Speed * -1;
-        // } else {
-        //     TargetSpeed += 2.5 * random.NextDouble() * (random.NextDouble() > 0.4 ? 1 : -1);
-        //     if (Math.Abs(TargetSpeed) < minSpeed) TargetSpeed = minSpeed * (random.NextDouble() > 0.4 ? 1 : -1);
-        //     TurnRate = TargetSpeed * 180 / Math.PI / (OSCILLATION_RADIUS - random.NextDouble() * (OSCILLATION_RADIUS-10));
-        // }
-        // if (IsOutsideArena(magicStick.x, magicStick.y)) {
-        //     // TurnRate += wallSmoothTurnIncr * (TurnRate > 0 ? 1 : -1);
-        //     // TargetSpeed -= wallSmoothSpeedIncr * (TargetSpeed > 0 ? 1 : -1);
-        //     // TurnRate = 15;
-        //     // if (TurnRate > 0) {
-        //     //     SetTurnLeft(10);
-        //     // } else {
-        //     //     SetTurnLeft(-10);
-        //     // }
-        //     TargetSpeed = 2;
-        //     // Forward(-50);
-        // } else {
-        // }
-        // TargetSpeed += 2.5 * random.NextDouble() * (random.NextDouble() > 0.4 ? 1 : -1);
-        // if (Math.Abs(TargetSpeed) < minSpeed) TargetSpeed = minSpeed * (random.NextDouble() > 0.4 ? 1 : -1);
-        // TurnRate = TargetSpeed * 180 / Math.PI / (OSCILLATION_RADIUS - random.NextDouble() * (OSCILLATION_RADIUS-10));
     }
 
     private bool WallSmoothing() {
         Point2D frontStick = CalcStickEnd(0);
         if (IsOutsideArena(frontStick.x, frontStick.y)) {
-            // if (IsACorner(frontStick.x, frontStick.y, WALL_MARGIN)) {
-            //     MoveTo(ArenaWidth / 2, ArenaHeight / 2);
-            //     return true;
-            // } 
             frontStick.x = Math.Max(WALL_MARGIN, Math.Min(ArenaWidth - WALL_MARGIN, frontStick.x));
             frontStick.y = Math.Max(WALL_MARGIN, Math.Min(ArenaHeight - WALL_MARGIN, frontStick.y));
             
