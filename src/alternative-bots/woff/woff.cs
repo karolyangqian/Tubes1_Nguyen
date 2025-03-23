@@ -66,6 +66,8 @@ public class Woff : Bot
     static double destX;
     static double destY;
 
+    static int sag = 1;
+
     Random rand = new Random();
 
     static Dictionary<int, EnemyData> enemyData = new Dictionary<int, EnemyData>();
@@ -160,6 +162,8 @@ public class Woff : Bot
             destY = bestY;
         }
 
+        if (EnemyCount == 1 && targetDistance > 250) return;
+
         double turn = BearingTo(destX, destY) * Math.PI / 180;
         SetTurnLeft(180 / Math.PI * Math.Tan(turn));
         SetForward(DistanceTo(destX, destY) * Math.Cos(turn));
@@ -211,6 +215,18 @@ public class Woff : Bot
         if (0.11 < energyDrop && energyDrop <= 3)
         {
             AddVirtualBullet(e.X, e.Y, CalcBulletSpeed(energyDrop), energyDrop);
+            if (EnemyCount == 1 && DistanceRemaining == 0)
+            {
+                
+                if (X < MOVE_WALL_MARGIN || X > ArenaWidth - MOVE_WALL_MARGIN ||
+                    Y < MOVE_WALL_MARGIN || Y > ArenaHeight - MOVE_WALL_MARGIN)
+                {
+                    sag = -sag;
+                }
+                double turn = (BearingTo(e.X, e.Y) + (90 - 15 * (targetDistance / 1000)) * sag) * Math.PI / 180;
+                SetTurnLeft(Math.Tan(turn) * 180 / Math.PI);
+                SetForward((3 + (int)(energyDrop*1.999999)) * 8 * Math.Sign(Math.Cos(turn)));
+            }
             // Console.WriteLine("Bullet Speed: " + CalcBulletSpeed(energyDrop) + " Power: " + energyDrop);
         }
         data.LastEnergy = e.Energy;
@@ -322,6 +338,8 @@ public class Woff : Bot
 
         risk += LAST_LOC_GRAVITY_CONSTANT * rand.NextDouble() / 
                 (Math.Pow(DistanceTo(candidateX, candidateY), 2) + MIN_DIVISOR);
+        if (targetId != 0)
+            risk += targetDistance - DistanceTo(enemyData[targetId].LastX, enemyData[targetId].LastY);
 
         return risk;
     }
@@ -371,6 +389,11 @@ public class Woff : Bot
     private double distanceSq(double x1, double y1, double x2, double y2)
     {
         return Math.Pow(x1 - x2, 2) + Math.Pow(y1 - y2, 2);
+    }
+
+    private double distance(double x1, double y1, double x2, double y2)
+    {
+        return Math.Sqrt(Math.Pow(x1 - x2, 2) + Math.Pow(y1 - y2, 2));
     }
 }
 
