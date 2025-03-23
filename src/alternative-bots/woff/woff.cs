@@ -83,6 +83,8 @@ public class Woff : Bot
     {
         Console.WriteLine("Woff woff woff 🐶! |---| round: " + RoundNumber);
         RadarColor = Color.White;
+        TracksColor = Color.White;
+        GunColor = Color.White;
 
         SetTurnRadarRight(double.PositiveInfinity);
         AdjustGunForBodyTurn = true;
@@ -97,15 +99,17 @@ public class Woff : Bot
     public override void OnTick(TickEvent e)
     {
         TurretColor = Color.FromArgb(rand.Next(256), rand.Next(256), rand.Next(256));
-        BulletColor = Color.FromArgb(255, 200 + rand.Next(50), 200 + rand.Next(50));
         ScanColor = Color.FromArgb(105, 105, rand.Next(256));
         BodyColor = ScanColor;
+        BulletColor = ScanColor;
 
+        var g = Graphics;
         for (int i = bullets.Count - 1; i >= 0; i--)
         {
             Bullet bullet = bullets[i];
             bullet.X += bullet.Speed * Math.Cos(bullet.Direction);
             bullet.Y += bullet.Speed * Math.Sin(bullet.Direction);
+            g.FillRectangle(Brushes.Black, (float)bullet.X, (float)bullet.Y, (float)(3 * bullet.Power), (float)(3 * bullet.Power));
             // Console.WriteLine("BulletId: " + i + " X: " + bullet.X + " Y: " + bullet.Y);
 
             if (bullet.X < 0 - BULLET_OFFSET_ARENA || bullet.X > ArenaWidth + BULLET_OFFSET_ARENA || 
@@ -263,6 +267,9 @@ public class Woff : Bot
         predictedX = Math.Max(MOVE_WALL_MARGIN, Math.Min(ArenaWidth - MOVE_WALL_MARGIN, predictedX));
         predictedY = Math.Max(MOVE_WALL_MARGIN, Math.Min(ArenaHeight - MOVE_WALL_MARGIN, predictedY));
 
+        var g = Graphics;
+        Pen skyBluePen = new Pen(Brushes.Red);
+        g.DrawRectangle(skyBluePen, (float)predictedX, (float)predictedY, 20, 20);
         double bearingFromGun = GunBearingTo(predictedX, predictedY);
         SetTurnGunLeft(bearingFromGun);
     }
@@ -325,10 +332,23 @@ public class Woff : Bot
         };
         bullets.Add(bullet);
         
-        // Linear
-        double linearX = x - speed * Math.Cos(Direction);
-        double linearY = y - speed * Math.Sin(Direction);
-        double linearDirection = 180 + DirectionTo(linearX, linearY);
+        // Linear-nya karol
+        double vb = CalcBulletSpeed(power);
+        double myDir = Direction * Math.PI / 180;
+        double vxt = Speed * Math.Cos(myDir);
+        double vyt = Speed * Math.Sin(myDir);
+        double xt = X;
+        double yt = Y;
+        double a = Math.Pow(vxt, 2) + Math.Pow(vyt, 2) - Math.Pow(vb, 2);
+        double b = 2 * (vxt * (xt - x) + vyt * (yt - y));
+        double c = Math.Pow(xt - x, 2) + Math.Pow(yt - y, 2);
+        double d = Math.Pow(b, 2) - 4 * a * c;
+        double t1 = (-b + Math.Sqrt(d)) / (2 * a);
+        double t2 = (-b - Math.Sqrt(d)) / (2 * a);
+        double t = Math.Max(t1, t2);
+        double predictedX = xt + vxt * t;
+        double predictedY = yt + vyt * t;
+        double linearDirection = Math.Atan2(predictedY - y, predictedX - x);
         Bullet bulletLinear = new Bullet
         {
             Speed = speed,
