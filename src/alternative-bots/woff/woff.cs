@@ -268,8 +268,8 @@ public class Woff : Bot
         predictedY = Math.Max(MOVE_WALL_MARGIN, Math.Min(ArenaHeight - MOVE_WALL_MARGIN, predictedY));
 
         var g = Graphics;
-        Pen skyBluePen = new Pen(Brushes.Red);
-        g.DrawRectangle(skyBluePen, (float)predictedX, (float)predictedY, 20, 20);
+        Pen redPen = new Pen(Brushes.Red);
+        g.DrawRectangle(redPen, (float)predictedX, (float)predictedY, 20, 20);
         double bearingFromGun = GunBearingTo(predictedX, predictedY);
         SetTurnGunLeft(bearingFromGun);
     }
