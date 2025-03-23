@@ -68,20 +68,20 @@ public class TestBot : Bot
     } 
 
     public override void OnTick(TickEvent e) {
-        // Console.WriteLine(string.Format("Safest corner: {0:0.00} {1:0.00}", corner.x, corner.y));
-        // if (navigating) {
-        //     double turn = BearingTo(corner.x, corner.y);
-        //     Point2D magicStick = CalcStickEnd(turn + 40 * (Math.Sin(DateTime.Now.Millisecond * 2 * Math.PI / 1100)));
-        //     MoveTo(magicStick.x, magicStick.y);
-        //     if (DistanceTo(corner.x, corner.y) < 100) {
-        //         TargetSpeed = 0;
-        //         navigating = false;
-        //     }
-        // } else {
-        //     Oscillate();
-        // }
-        Point2D stick = CalcStickEnd(170);
-        MoveTo(stick.x, stick.y);
+        Console.WriteLine(string.Format("Safest corner: {0:0.00} {1:0.00}", corner.x, corner.y));
+        if (navigating) {
+            double turn = BearingTo(corner.x, corner.y);
+            Point2D magicStick = CalcStickEnd(turn + 40 * (Math.Sin(DateTime.Now.Millisecond * 2 * Math.PI / 1100)));
+            MoveTo(magicStick.x, magicStick.y);
+            if (DistanceTo(corner.x, corner.y) < 100) {
+                TargetSpeed = 0;
+                navigating = false;
+            }
+        } else {
+            Oscillate();
+        }
+        // Point2D stick = CalcStickEnd(90);
+        // MoveTo(stick.x, stick.y);
         Console.WriteLine(string.Format("Distance to corner: {0:0.00} {1}", DistanceTo(corner.x, corner.y), navigating));
 
     }
@@ -110,7 +110,7 @@ public class TestBot : Bot
 
     private void Oscillate()
     {
-        Point2D magicStick = CalcStickEnd(-20);
+        Point2D magicStick = CalcStickEnd(20);
 
         double newX = Math.Max(WALL_MARGIN, Math.Min(ArenaWidth - WALL_MARGIN, magicStick.x));
         double newY = Math.Max(WALL_MARGIN, Math.Min(ArenaHeight - WALL_MARGIN, magicStick.y));
