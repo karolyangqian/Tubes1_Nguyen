@@ -9,7 +9,7 @@ using Robocode.TankRoyale.BotApi.Events;
 // woff 🐶
 // ------------------------------------------------------------------
 // Targeting: Play It Forward
-// Movement: Minimum Risk
+// Movement: Minimum Risk & Stop and Go
 // ------------------------------------------------------------------
 /*
 
@@ -225,7 +225,7 @@ public class Woff : Bot
                 }
                 double turn = (BearingTo(e.X, e.Y) + (90 - 15 * (targetDistance / 1000)) * sag) * Math.PI / 180;
                 SetTurnLeft(Math.Tan(turn) * 180 / Math.PI);
-                SetForward((3 + (int)(energyDrop*1.999999)) * 8 * Math.Sign(Math.Cos(turn)));
+                SetForward((3 + (int)(energyDrop * 1.999999)) * 8 * Math.Sign(Math.Cos(turn)));
             }
             // Console.WriteLine("Bullet Speed: " + CalcBulletSpeed(energyDrop) + " Power: " + energyDrop);
         }
