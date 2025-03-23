@@ -9,27 +9,19 @@ using Robocode.TankRoyale.BotApi.Events;
 
 public class Schmelly : Bot
 {   
-    private const double MAX_SHOOT_RANGE_THRESH = 600;
     private double Height = 600;
     private double Width = 800;
     private double CenterX = 400;
     private double CenterY = 300;
-    private double WallMargin = 100;
+    private double WallMargin = 100; // Batas jark dari dinding yang "dekat"
     private double scannedEnemyX;
     private double scannedEnemyY;
     private double scannedEnemySpeed;
-    private double scannedEnemyDirection = 0;
-    private double scannedEnemyOldDirection = 0;
-    // private double scannedPrevEnergy = 100;
     private double scannedCurrEnergy = 0;
-    // private double firePower = 0;
-    // static double targetDistance;
-    // static double scannedEnemyDistance;
-    // static int trackTargetID;
+    private double firePower;
 
     private readonly static double  RADAR_LOCK = 0.7;
     static double GUN_FACTOR = 10;
-    static double MIN_ENERGY = 10;
     Dictionary<int, EnemyData> enemyData = new Dictionary<int, EnemyData>(); // Track data tank musuh
     List<double> dirHistory = new List<double>();
     
@@ -58,52 +50,11 @@ public class Schmelly : Bot
     }
 
     public override void OnTick(TickEvent e) 
-    {   
-        double xForce = 0;
-        double yForce = 0;
-        
+    {       
         if (isNearWall()) {
-            SetForward(0);
-            double dX = CenterX - X;
-            double dY = CenterY - Y;
-            double angleToCenter = Math.Atan2(dX, dY);
-            xForce = Math.Sin(angleToCenter) / (dX * dX);
-            yForce = Math.Cos(angleToCenter) / (dY * dY);
-            double angleRadian = Math.Atan2(xForce, yForce);
-            double angle = angleRadian * (180 / Math.PI);
-            if (Math.Abs(angle - Direction) < 90) {
-                TurnRight(NormalizeRelativeAngle(CalcBearing(angle)));
-                Forward(100);
-            } else {
-                if (angle < 0) {
-                    TurnRight(NormalizeRelativeAngle(CalcBearing(angle) + 180)); 
-                } else {
-                    TurnRight(NormalizeRelativeAngle(CalcBearing(angle) - 180));
-                }
-                Back(100);
-            }
+            moveToCenter();
         } else {
-            foreach (EnemyData value in enemyData.Values) {
-                double enemyAbsBearing = NormalizeAbsoluteAngle((Math.Atan2(value.coordinate.X - X, value.coordinate.Y - Y)));
-                double enemyDistance = getEnemyDistance(value);
-                xForce -= (Math.Sin(enemyAbsBearing) / (enemyDistance * enemyDistance)) * value.enemyEnergy;
-                yForce -= (Math.Cos(enemyAbsBearing) / (enemyDistance * enemyDistance)) * value.enemyEnergy;
-            }
-
-            double angleRadian = Math.Atan2(xForce, yForce);
-            double angle = angleRadian * (180 / Math.PI);
-
-            angleRadian = Math.Atan2(xForce, yForce);
-            angle = angleRadian * (180 / Math.PI);
-            if (Math.Abs(angle - Direction) < 90) {
-                SetTurnRight(NormalizeRelativeAngle(CalcBearing(angle)));
-                SetForward(100);
-                Console.WriteLine("Forward");
-            } else {
-                SetTurnRight(NormalizeRelativeAngle(angle + 180 - Direction));
-                SetBack(100);
-                Console.WriteLine("Back");
-            }
+            antiGravity();
         }
     }
 
@@ -111,19 +62,17 @@ public class Schmelly : Bot
 
     public override void OnScannedBot(ScannedBotEvent e)
     {
+        // Catat data musuh yang di-scan
         scannedEnemyX = e.X;
         scannedEnemyY = e.Y;
         scannedEnemySpeed = e.Speed;
         scannedCurrEnergy = e.Energy;
-        double enemyDistance = DistanceTo(scannedEnemyX, scannedEnemyY);
         int enemyID = e.ScannedBotId; 
 
         // Cari 'bearing' musuh (derajat musuh terhadap kita)
-        double deltaX = scannedEnemyX - X;
-        double deltaY = scannedEnemyY - Y;
-        double enemyBearing = Math.Atan2(deltaY, deltaX) + (Direction * (Math.PI/180));
+        double enemyBearing = getEnemyBearing(scannedEnemyX, scannedEnemyY);
         
-        // Catat data musuh dalam array
+        // Catat data musuh dalam dictionary
         if (!enemyData.ContainsKey(enemyID)) {
             enemyData.Add(enemyID, new EnemyData(scannedEnemyX + DistanceTo(scannedEnemyX, scannedEnemyY)*Math.Sin(enemyBearing), scannedEnemyY + DistanceTo(scannedEnemyX, scannedEnemyY)*Math.Cos(enemyBearing), scannedCurrEnergy));
         } else {
@@ -131,71 +80,13 @@ public class Schmelly : Bot
         }
 
         // Radar lock
-        double radarAngle = double.PositiveInfinity * NormalizeRelativeAngle(RadarBearingTo(e.X, e.Y));
-        if (!double.IsNaN(radarAngle) && (GunHeat < RADAR_LOCK || EnemyCount == 1))
-        {
-            SetTurnRadarLeft(radarAngle);
-        }
+        setRadarTurn(scannedEnemyX, scannedEnemyY);
 
-        double firePower = Energy / DistanceTo(e.X, e.Y) * GUN_FACTOR;
-        if (GunTurnRemaining == 0) {
-            SetFire(firePower);
-        }
+        // Atur firepower tank
+        setGunFire(scannedEnemyX, scannedEnemyY);
 
-        double bulletSpeed = CalcBulletSpeed(firePower);
-        double enemyDirection = e.Direction * (Math.PI/180);
-        dirHistory.Add(enemyDirection);
-        if (dirHistory.Count > 5) {
-            dirHistory.RemoveAt(0);
-        }
-
-        double angularVelocity = 0;
-        if (dirHistory.Count >= 2) {
-            double totChange = 0;
-            for (int i = 1; i < dirHistory.Count; i++) {
-                double delta = dirHistory[i] - dirHistory[i-1];
-                delta = (delta + Math.PI) % (2 * Math.PI) - Math.PI;
-                totChange += delta;
-            }
-            angularVelocity = totChange / (dirHistory.Count - 1);
-        }
-        double predictedX = e.X;
-        double predictedY = e.Y;
-
-        int deltaTime = 0;
-        while (deltaTime++ * bulletSpeed < DistanceTo(predictedX, predictedY)) {
-            enemyDirection += angularVelocity;
-            predictedX += scannedEnemySpeed * Math.Cos(enemyDirection);
-            predictedY += scannedEnemySpeed * Math.Sin(enemyDirection);
-        }
-
-        if (predictedX < 0)
-        {
-            predictedX -= 1;
-        } else if (predictedX > Width)
-        {
-            predictedX = 2 * Width - predictedX;
-        }
-
-        if (predictedY < 0)
-        {
-            predictedY -= 1;
-        } else if (predictedY > Height)
-        {
-            predictedY = 2 * Height - predictedY;
-        }
-
-        SetTurnGunLeft(GunBearingTo(predictedX, predictedY));
-    }
-
-    public override void OnHitBot(HitBotEvent e)
-    {
-        // Console.WriteLine("Ouch! I hit a bot at " + e.X + ", " + e.Y);
-    }
-
-    public override void OnHitWall(HitWallEvent e)
-    {
-        // Console.WriteLine("Ouch! I hit a wall, must turn back!");
+        // Targeting
+        LinearTarget(scannedEnemyX, scannedEnemyY, scannedEnemySpeed, e.Direction, firePower);
     }
 
     public override void OnBotDeath(BotDeathEvent e)
@@ -207,12 +98,114 @@ public class Schmelly : Bot
     }
 
     /* ============================ Helper Functions ============================ */
+    // Cari bearing musuh terhadap tank kita
+    public double getEnemyBearing(double enemyX, double enemyY) {
+        double deltaX = enemyX - X;
+        double deltaY = enemyY - Y;
+        return Math.Atan2(deltaY, deltaX) + (Direction * (Math.PI/180));
+    }
+    
+    // True jika jarak terlalu dekat dengan dinding
+    public bool isNearWall() {
+        return (X < WallMargin || X > Width - WallMargin || Y < WallMargin || Y > Height - WallMargin);
+    }
+
+    // Setting radar
+    public void setRadarTurn(double enemyX, double enemyY) {
+        double radarAngle = double.PositiveInfinity * NormalizeRelativeAngle(RadarBearingTo(enemyX, enemyY));
+        if (!double.IsNaN(radarAngle) && (GunHeat < RADAR_LOCK || EnemyCount == 1))
+        {
+            SetTurnRadarLeft(radarAngle); // Lock radar ke musuh
+        }
+    }
+
+    // Setting firepower
+    public void setGunFire(double enemyX, double enemyY) {
+        firePower = Energy / DistanceTo(enemyX, enemyY) * GUN_FACTOR;
+        if (GunTurnRemaining == 0) {
+            SetFire(firePower);
+        }
+    }
+
+    // Cari jarak musuh
     public double getEnemyDistance(EnemyData enemyData) {
         return DistanceTo(enemyData.coordinate.X, enemyData.coordinate.Y);
     }
 
-    public bool isNearWall() {
-        return (X < WallMargin || X > Width - WallMargin || Y < WallMargin || Y > Height - WallMargin);
+    // Prosedur untuk melakukan targeting secara linear 
+    public void LinearTarget(double targetX, double targetY, double targetSpeed, double targetDirection, double firePower) {
+        double vB = CalcBulletSpeed(firePower);
+        double vXt = targetSpeed * Math.Cos(degToRad(targetDirection));
+        double vYt = targetSpeed * Math.Sin(degToRad(targetDirection));
+        double Xt = targetX;
+        double Yt = targetY;
+
+        // Persamaan kuadrat
+        double a = Math.Pow(vXt, 2) + Math.Pow(vYt, 2) - Math.Pow(vB, 2);
+        double b = 2 * (vXt * (Xt - X) + vYt * (Yt - Y));
+        double c = Math.Pow(Xt - X, 2) + Math.Pow(Yt - Y, 2);
+        double discriminant = Math.Pow(b, 2) - 4 * a * c;
+
+        if (discriminant < 0) { // Langsung tembak saja ke arah musuh
+            SetTurnGunLeft(GunBearingTo(targetX, targetY));
+            SetFire(firePower);
+        } else {
+            double t1 = (-b + Math.Sqrt(discriminant)) / (2 * a);
+            double t2 = (-b - Math.Sqrt(discriminant)) / (2 * a);
+            double t = Math.Min(t1 > 0 ? t1 : double.PositiveInfinity, t2 > 0 ? t2 : double.PositiveInfinity);
+
+            double predictedX = targetX + targetSpeed * t * Math.Cos(degToRad(targetDirection));
+            double predictedY = targetY + targetSpeed * t * Math.Sin(degToRad(targetDirection));
+            SetTurnGunLeft(GunBearingTo(predictedX, predictedY));
+            SetFire(firePower);
+        }
+    }
+
+    // Prosedur untuk menggerakkan tank ke tengah arena jika sudah dekat dinding
+    public void moveToCenter(double vel = 8) {
+        double turn = vel > 0 ? BearingTo(CenterX, CenterY) : 180 - BearingTo(CenterX, CenterY);
+        vel = Math.Abs(vel);
+        SetTurnLeft(turn);
+        double turnRadius = Math.Abs((180 - Math.Abs(turn)) / 180 * vel / (TurnRate == 0 ? 1 : TurnRate));
+        double distance = DistanceTo(CenterX, CenterY);
+
+        if (Math.Abs(turn) < 30 && distance < WallMargin) {
+            TargetSpeed = vel * distance / WallMargin;
+        } else {
+            TargetSpeed = Math.Abs(turn != 0 ? TurnRate * turnRadius : vel);
+        }
+    }
+
+    // Prosedur untuk melakukan anti-gravity movement --> menjauhi musuh
+    public void antiGravity() {
+        double xForce = 0;
+        double yForce = 0;
+
+        foreach (EnemyData value in enemyData.Values) {
+            double enemyAbsBearing = NormalizeAbsoluteAngle(radToDeg(Math.Atan2(value.coordinate.X - X, value.coordinate.Y - Y)));
+            double enemyDistance = getEnemyDistance(value);
+            // F = 1/r^2 * E (E = energy musuh, untuk pembobotan)
+            xForce -= (Math.Sin(degToRad(enemyAbsBearing)) / Math.Pow(enemyDistance, 2)) * value.enemyEnergy;
+            yForce -= (Math.Cos(degToRad(enemyAbsBearing)) / Math.Pow(enemyDistance, 2)) * value.enemyEnergy;
+        }
+
+        double angle = NormalizeRelativeAngle(radToDeg(Math.Atan2(xForce, yForce)));
+
+        if (Math.Abs(CalcBearing(angle)) < 90) {
+            SetTurnRight(CalcBearing(angle));
+            SetForward(100);
+        } else {
+            SetTurnRight(CalcBearing(angle) > 0 ? CalcBearing(angle) - 180 : CalcBearing(angle) + 180);
+            Back(50);
+        }
+    }
+
+    public double degToRad(double degree) {
+        return degree * (Math.PI/180);
+    }
+
+    public double radToDeg(double radian) {
+        return radian * (180/Math.PI);
     }
 }
 
