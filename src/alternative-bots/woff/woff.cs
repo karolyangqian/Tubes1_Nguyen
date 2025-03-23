@@ -52,7 +52,7 @@ public class Woff : Bot
     private readonly static double  MAX_RADIUS = 300;
     private readonly static double  POINT_COUNT = 36;
     private readonly static double  MIN_DIVISOR = 1e-6;
-    private readonly static int     MAX_DATA = 100;
+    private readonly static int     NGRAM_ORDER = 4;
     private readonly static int     BULLET_OFFSET_ARENA = 50;
     private readonly static int     ENEMY_GRAVITY_CONSTANT = 300;
     private readonly static int     BULLET_GRAVITY_CONSTANT = 10;
@@ -215,28 +215,24 @@ public class Woff : Bot
         }
         data.LastEnergy = e.Energy;
 
-        // Input Markov Chain
+        // Input State
         double currentSpeed = e.Speed;
         double acceleration = data.HasPrevious ? currentSpeed - data.LastSpeed : 0;
         data.LastSpeed = currentSpeed;
         double angularVelocity = data.HasPrevious ? (currentDirection - data.LastDirection + Math.PI) % (2 * Math.PI) - Math.PI : 0;
- 
         data.LastDirection = currentDirection;
-
         State currentState = new State(angularVelocity, currentSpeed, acceleration);
         data.StateHistory.Add(currentState);
-        if (data.StateHistory.Count > MAX_DATA)
+
+        if (data.StateHistory.Count >= NGRAM_ORDER)
         {
-            data.StateHistory.RemoveAt(0);
-        }
-        if (data.HasPrevious)
-        {
-            State previousState = data.StateHistory[data.StateHistory.Count - 2];
-            if (!data.MarkovChainTree.ContainsKey(previousState))
+            List<State> contextStates = data.StateHistory.GetRange(data.StateHistory.Count - (NGRAM_ORDER - 1), NGRAM_ORDER - 1);
+            StateSequence contextKey = new StateSequence(contextStates);
+            if (!data.NgramTree.ContainsKey(contextKey))
             {
-                data.MarkovChainTree[previousState] = new TransitionSegmentTree();
+                data.NgramTree[contextKey] = new TransitionSegmentTree();
             }
-            data.MarkovChainTree[previousState].Add(currentState);
+            data.NgramTree[contextKey].Add(currentState);
         }
         data.HasPrevious = true;
 
@@ -248,14 +244,26 @@ public class Woff : Bot
         double simAngularVelocity = angularVelocity;
         State simCurrentState = currentState;
         int time = 0;
+
+        List<State> simContext = null;
+        if (data.StateHistory.Count >= NGRAM_ORDER - 1)
+        {
+            simContext = new List<State>(data.StateHistory.GetRange(data.StateHistory.Count - (NGRAM_ORDER - 1), NGRAM_ORDER - 1));
+        }
+
         while (time * bulletSpeed < DistanceTo(predictedX, predictedY) && time < 100)
         {
-            if (data.MarkovChainTree.ContainsKey(simCurrentState))
+            if (simContext != null)
             {
-                State nextState = data.MarkovChainTree[simCurrentState].GetMostFrequent();
-                simAngularVelocity = nextState.AngularVelocity / 1024.0;
-                predictedSpeed += nextState.Acceleration;
-                simCurrentState = nextState;
+                StateSequence simContextKey = new StateSequence(simContext);
+                if (data.NgramTree.ContainsKey(simContextKey))
+                {
+                    State nextState = data.NgramTree[simContextKey].GetMostFrequent();
+                    simAngularVelocity = nextState.AngularVelocity / 1024.0;
+                    predictedSpeed += nextState.Acceleration;
+                    simContext.RemoveAt(0);
+                    simContext.Add(nextState);
+                }
             }
             predictedDirection += simAngularVelocity;
             predictedX += predictedSpeed * Math.Cos(predictedDirection);
@@ -404,10 +412,41 @@ public struct State
     }
 }
 
+public class StateSequence
+{
+    public List<State> States { get; }
+    public StateSequence(IEnumerable<State> states)
+    {
+        States = new List<State>(states);
+    }
+    public override bool Equals(object obj)
+    {
+        if (obj is StateSequence seq)
+        {
+            if (States.Count != seq.States.Count)
+                return false;
+            for (int i = 0; i < States.Count; i++)
+            {
+                if (!States[i].Equals(seq.States[i]))
+                    return false;
+            }
+            return true;
+        }
+        return false;
+    }
+    public override int GetHashCode()
+    {
+        int hash = 17;
+        foreach (var s in States)
+            hash = hash * 31 + s.GetHashCode();
+        return hash;
+    }
+}
+
 public class EnemyData
 {
     public List<State> StateHistory { get; } = new List<State>();
-    public Dictionary<State, TransitionSegmentTree> MarkovChainTree { get; } = new Dictionary<State, TransitionSegmentTree>();
+    public Dictionary<StateSequence, TransitionSegmentTree> NgramTree { get; } = new Dictionary<StateSequence, TransitionSegmentTree>();
     public double LastDirection { get; set; }
     public bool HasPrevious { get; set; } = false;
 
