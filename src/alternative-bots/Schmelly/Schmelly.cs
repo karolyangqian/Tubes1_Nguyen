@@ -12,7 +12,9 @@ public class Schmelly : Bot
     private const double MAX_SHOOT_RANGE_THRESH = 600;
     private double Height = 600;
     private double Width = 800;
-    private double WallMargin = 60;
+    private double CenterX = 400;
+    private double CenterY = 300;
+    private double WallMargin = 100;
     private double scannedEnemyX;
     private double scannedEnemyY;
     private double scannedEnemySpeed;
@@ -24,12 +26,12 @@ public class Schmelly : Bot
     // static double targetDistance;
     // static double scannedEnemyDistance;
     // static int trackTargetID;
-    static Dictionary<int, EnemyData> enemyData = new Dictionary<int, EnemyData>(); // Track data tank musuh
 
     private readonly static double  RADAR_LOCK = 0.7;
     static double GUN_FACTOR = 10;
     static double MIN_ENERGY = 10;
-    static List<double> dirHistory = new List<double>();
+    Dictionary<int, EnemyData> enemyData = new Dictionary<int, EnemyData>(); // Track data tank musuh
+    List<double> dirHistory = new List<double>();
     
     static void Main()
     {
@@ -56,71 +58,53 @@ public class Schmelly : Bot
     }
 
     public override void OnTick(TickEvent e) 
-    {
-        Console.WriteLine("X: " + X + " Y: " + Y);
-        // Anti-Gravity
+    {   
         double xForce = 0;
         double yForce = 0;
-
-        // double forceAtas = 1000 / ((Height - Y) * (Height - Y));
-        // double forceBawah = 1000 / (Y * Y);
-        // double forceKanan = 1000 / ((Width - X) * (Width - X));
-        // double forceKiri = 1000 / (X * X);
-        // Console.WriteLine("Force Atas: " + forceAtas + " Force Bawah: " + forceBawah + " Force Kanan: " + forceKanan + " Force Kiri: " + forceKiri);
-
-        foreach (EnemyData value in enemyData.Values) {
-            double enemyAbsBearing = NormalizeAbsoluteAngle((Math.Atan2(value.coordinate.X - X, value.coordinate.Y - Y)));
-            double enemyDistance = getEnemyDistance(value);
-            xForce -= (Math.Sin(enemyAbsBearing) / (enemyDistance * enemyDistance)) * value.enemyEnergy * 100;
-            yForce -= (Math.Cos(enemyAbsBearing) / (enemyDistance * enemyDistance)) * value.enemyEnergy * 100;
-        }
-        // xForce -= forceKanan + forceKiri;
-        // yForce -= forceAtas + forceBawah;
-
-        if (X < WallMargin || X > Width - WallMargin) {
-            xForce = 0;
-        }
-        if (Y < WallMargin || Y > Height - WallMargin) {
-            yForce = 0;
-        }
         
-        Console.WriteLine("XForce: " + xForce + " YForce: " + yForce);
-        double forceMagnitude = Math.Sqrt(xForce * xForce + yForce * yForce) * 100;
-        Console.WriteLine("Force Magnitude: " + forceMagnitude);
-        double angleRadian = Math.Atan2(xForce, yForce);
-        double angle = angleRadian * (180 / Math.PI);
-        Console.WriteLine("Angle: " + angle);
-        if (xForce != 0 && yForce != 0) {
-            Console.WriteLine(NormalizeRelativeAngle(angle - Direction));
-            // SetTurnRight(NormalizeRelativeAngle(angle - Direction));
-            // SetForward(forceMagnitude);
+        if (isNearWall()) {
+            SetForward(0);
+            double dX = CenterX - X;
+            double dY = CenterY - Y;
+            double angleToCenter = Math.Atan2(dX, dY);
+            xForce = Math.Sin(angleToCenter) / (dX * dX);
+            yForce = Math.Cos(angleToCenter) / (dY * dY);
+            double angleRadian = Math.Atan2(xForce, yForce);
+            double angle = angleRadian * (180 / Math.PI);
             if (Math.Abs(angle - Direction) < 90) {
-                SetTurnRight(NormalizeRelativeAngle(angle - Direction));
+                TurnRight(NormalizeRelativeAngle(CalcBearing(angle)));
+                Forward(100);
+            } else {
+                if (angle < 0) {
+                    TurnRight(NormalizeRelativeAngle(CalcBearing(angle) + 180)); 
+                } else {
+                    TurnRight(NormalizeRelativeAngle(CalcBearing(angle) - 180));
+                }
+                Back(100);
+            }
+        } else {
+            foreach (EnemyData value in enemyData.Values) {
+                double enemyAbsBearing = NormalizeAbsoluteAngle((Math.Atan2(value.coordinate.X - X, value.coordinate.Y - Y)));
+                double enemyDistance = getEnemyDistance(value);
+                xForce -= (Math.Sin(enemyAbsBearing) / (enemyDistance * enemyDistance)) * value.enemyEnergy;
+                yForce -= (Math.Cos(enemyAbsBearing) / (enemyDistance * enemyDistance)) * value.enemyEnergy;
+            }
+
+            double angleRadian = Math.Atan2(xForce, yForce);
+            double angle = angleRadian * (180 / Math.PI);
+
+            angleRadian = Math.Atan2(xForce, yForce);
+            angle = angleRadian * (180 / Math.PI);
+            if (Math.Abs(angle - Direction) < 90) {
+                SetTurnRight(NormalizeRelativeAngle(CalcBearing(angle)));
                 SetForward(100);
+                Console.WriteLine("Forward");
             } else {
                 SetTurnRight(NormalizeRelativeAngle(angle + 180 - Direction));
-                SetForward(100);
+                SetBack(100);
+                Console.WriteLine("Back");
             }
-        } else if (xForce == 0 && yForce == 0) {
-            SetTurnRight(90);
-            SetForward(100);
-        } else if (xForce == 0 && ((Direction >= 45 && Direction <= 135) || (Direction >= 225 && Direction <= 315))) {
-            SetTurnRight(135);
-            SetForward(100);
-
-        } else if (yForce == 0 && ((Direction <= 45 && Direction >= 315) || (Direction >= 135 && Direction <= 225))) {
-            SetTurnRight(135);
-            SetForward(100);
-
-        } else { // Oscillate
-            Forward(100);
-            if (X < WallMargin || X > Width - WallMargin || Y < WallMargin || Y > Height - WallMargin) {
-                SetTurnRight(90);
-                SetForward(100);
-            } 
-            Back(50);
         }
-
     }
 
 /* ================================= Event Handler ================================= */
@@ -152,12 +136,6 @@ public class Schmelly : Bot
         {
             SetTurnRadarLeft(radarAngle);
         }
-
-        // double firePower = Energy / DistanceTo(e.X, e.Y) * GUN_FACTOR;
-        // if (GunTurnRemaining == 0 && (Energy > MIN_ENERGY || DistanceTo(e.X, e.Y) < 50))
-        // {
-        //     SetFire(firePower);
-        // }
 
         double firePower = Energy / DistanceTo(e.X, e.Y) * GUN_FACTOR;
         if (GunTurnRemaining == 0) {
@@ -208,26 +186,6 @@ public class Schmelly : Bot
         }
 
         SetTurnGunLeft(GunBearingTo(predictedX, predictedY));
-
-        // Circular targeting: asumsi hanya 1 musuh
-        // double enemyDirection = e.Direction;
-        // double enemyDirChange = enemyDirection - scannedEnemyOldDirection;
-        // scannedEnemyOldDirection = enemyDirection;
-
-        // double deltaTime = 0;
-        // double predictedX = e.X;
-        // double predictedY = e.Y;
-        // while (((deltaTime++) * (20.0-3.0*firePower)) < DistanceTo(predictedX, predictedY)) {
-        //     predictedX += Math.Sin(enemyDirection) * scannedEnemySpeed;
-        //     predictedY += Math.Cos(enemyDirection) * scannedEnemySpeed;
-        //     enemyDirection += enemyDirChange;
-        //     if (predictedX < 18 || predictedY < 18 || predictedX > Width-18 || predictedY > Height-18) {
-        //         predictedX = Math.Min(Math.Max(18, predictedX), Width-18);
-        //         predictedY = Math.Min(Math.Max(18, predictedY), Width-18);
-        //         break;
-        //     } 
-        // }
-        // SetTurnGunLeft(GunBearingTo(predictedX, predictedY));
     }
 
     public override void OnHitBot(HitBotEvent e)
@@ -251,6 +209,10 @@ public class Schmelly : Bot
     /* ============================ Helper Functions ============================ */
     public double getEnemyDistance(EnemyData enemyData) {
         return DistanceTo(enemyData.coordinate.X, enemyData.coordinate.Y);
+    }
+
+    public bool isNearWall() {
+        return (X < WallMargin || X > Width - WallMargin || Y < WallMargin || Y > Height - WallMargin);
     }
 }
 
