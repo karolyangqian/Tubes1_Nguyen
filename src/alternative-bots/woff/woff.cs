@@ -45,13 +45,18 @@ public class Woff : Bot
     // Knobs
     private readonly static double  ENEMY_ENERGY_THRESHOLD = 1.3;
     private readonly static double  MOVE_WALL_MARGIN = 25;
-    private readonly static double  GUN_FACTOR = 10;
-    private readonly static double  MIN_ENERGY = 10;
+    private readonly static double  GUN_FACTOR = 5;
+    private readonly static double  MIN_ENERGY = 12;
     private readonly static double  RADAR_LOCK = 0.7;
     private readonly static double  MIN_RADIUS = 200;
     private readonly static double  MAX_RADIUS = 300;
     private readonly static double  POINT_COUNT = 36;
+    private readonly static double  MIN_DIVISOR = 1e-6;
     private readonly static int     MAX_DATA = 100;
+    private readonly static int     BULLET_OFFSET_ARENA = 50;
+    private readonly static int     ENEMY_GRAVITY_CONSTANT = 300;
+    private readonly static int     BULLET_GRAVITY_CONSTANT = 10;
+    private readonly static int     LAST_LOC_GRAVITY_CONSTANT = 10;
 
     // Global variables
     static int targetId;
@@ -76,6 +81,7 @@ public class Woff : Bot
 
     public override void Run()
     {
+        Console.WriteLine("Woff woff woff 🐶! |---| round: " + RoundNumber);
         RadarColor = Color.White;
 
         SetTurnRadarRight(double.PositiveInfinity);
@@ -91,7 +97,7 @@ public class Woff : Bot
     public override void OnTick(TickEvent e)
     {
         TurretColor = Color.FromArgb(rand.Next(256), rand.Next(256), rand.Next(256));
-        BulletColor = Color.FromArgb(rand.Next(256), rand.Next(256), rand.Next(256));
+        BulletColor = Color.FromArgb(255, 200 + rand.Next(50), 200 + rand.Next(50));
         ScanColor = Color.FromArgb(105, 105, rand.Next(256));
         BodyColor = ScanColor;
 
@@ -102,8 +108,8 @@ public class Woff : Bot
             bullet.Y += bullet.Speed * Math.Sin(bullet.Direction);
             // Console.WriteLine("BulletId: " + i + " X: " + bullet.X + " Y: " + bullet.Y);
 
-            if (bullet.X < 0 - MOVE_WALL_MARGIN * 2 || bullet.X > ArenaWidth + MOVE_WALL_MARGIN * 2 || 
-                bullet.Y < 0 - MOVE_WALL_MARGIN * 2 || bullet.Y > ArenaHeight + MOVE_WALL_MARGIN * 2)
+            if (bullet.X < 0 - BULLET_OFFSET_ARENA || bullet.X > ArenaWidth + BULLET_OFFSET_ARENA || 
+                bullet.Y < 0 - BULLET_OFFSET_ARENA || bullet.Y > ArenaHeight + BULLET_OFFSET_ARENA)
             {
                 bullets.RemoveAt(i);
             }
@@ -212,7 +218,6 @@ public class Woff : Bot
         double angularVelocity = data.HasPrevious ? (currentDirection - data.LastDirection + Math.PI) % (2 * Math.PI) - Math.PI : 0;
  
         data.LastDirection = currentDirection;
-        data.HasPrevious = true;
 
         State currentState = new State(angularVelocity, currentSpeed, acceleration);
         data.StateHistory.Add(currentState);
@@ -220,15 +225,16 @@ public class Woff : Bot
         {
             data.StateHistory.RemoveAt(0);
         }
-        if (data.StateHistory.Count >= 2)
+        if (data.HasPrevious)
         {
             State previousState = data.StateHistory[data.StateHistory.Count - 2];
-            if (!data.MarkovChain.ContainsKey(previousState))
+            if (!data.MarkovChainTree.ContainsKey(previousState))
             {
-                data.MarkovChain[previousState] = new List<State>();
+                data.MarkovChainTree[previousState] = new TransitionSegmentTree();
             }
-            data.MarkovChain[previousState].Add(currentState);
+            data.MarkovChainTree[previousState].Add(currentState);
         }
+        data.HasPrevious = true;
 
         // --- Play It Forward ---
         double predictedX = e.X;
@@ -238,12 +244,12 @@ public class Woff : Bot
         double simAngularVelocity = angularVelocity;
         State simCurrentState = currentState;
         int time = 0;
-        while (time * bulletSpeed < DistanceTo(predictedX, predictedY))
+        while (time * bulletSpeed < DistanceTo(predictedX, predictedY) && time < 100)
         {
-            if (data.MarkovChain.ContainsKey(simCurrentState) && data.MarkovChain[simCurrentState].Count > 0)
+            if (data.MarkovChainTree.ContainsKey(simCurrentState))
             {
-                State nextState = GetMostFrequentTransition(data.MarkovChain[simCurrentState]);
-                simAngularVelocity = nextState.AngularVelocity / 256.0;
+                State nextState = data.MarkovChainTree[simCurrentState].GetMostFrequent();
+                simAngularVelocity = nextState.AngularVelocity / 1024.0;
                 predictedSpeed += nextState.Acceleration;
                 simCurrentState = nextState;
             }
@@ -272,31 +278,6 @@ public class Woff : Bot
     }
 
     // --- Helper Functions ---
-    private State GetMostFrequentTransition(List<State> transitions)
-    {
-        List<State> transitionsCopy = new List<State>(transitions);
-        
-        Dictionary<State, int> frequency = new Dictionary<State, int>();
-        foreach (State state in transitionsCopy)
-        {
-            if (frequency.ContainsKey(state))
-                frequency[state]++;
-            else
-                frequency[state] = 1;
-        }
-        State bestState = transitionsCopy[0];
-        int bestCount = 0;
-        foreach (var kvp in frequency)
-        {
-            if (kvp.Value > bestCount)
-            {
-                bestCount = kvp.Value;
-                bestState = kvp.Key;
-            }
-        }
-        return bestState;
-    }
-
     private double CalcRisk(double candidateX, double candidateY)
     {
         double risk = 0;
@@ -305,11 +286,10 @@ public class Woff : Bot
         {
             if (enemy.IsAlive)
             {
-                risk += 300 * (enemy.LastEnergy - ENEMY_ENERGY_THRESHOLD) / (distanceSq(candidateX, candidateY, enemy.LastX, enemy.LastY) + 1e-6);
+                risk += ENEMY_GRAVITY_CONSTANT * (enemy.LastEnergy - ENEMY_ENERGY_THRESHOLD) / 
+                        (distanceSq(candidateX, candidateY, enemy.LastX, enemy.LastY) + MIN_DIVISOR);
             }
         }
-
-        risk += 10 * rand.NextDouble() / (Math.Pow(DistanceTo(candidateX, candidateY), 2) + 1e-6);
 
         foreach (Bullet bullet in bullets)
         {
@@ -321,8 +301,12 @@ public class Woff : Bot
             );
             
             double d = bulletLine.DistanceToPoint(candidateX, candidateY);
-            risk += 10 * bullet.Power / (d * d + 1e-6);
+            risk += BULLET_GRAVITY_CONSTANT * bullet.Power / (d * d + MIN_DIVISOR);
+
         }
+
+        risk += LAST_LOC_GRAVITY_CONSTANT * rand.NextDouble() / 
+                (Math.Pow(DistanceTo(candidateX, candidateY), 2) + MIN_DIVISOR);
 
         return risk;
     }
@@ -364,13 +348,13 @@ public class Woff : Bot
 
 public struct State
 {
-    public int AngularVelocity; // quantized: radian * 256
+    public int AngularVelocity; // quantized: radian * 1024
     public int Speed;           // -8 -- 8
     public int Acceleration;    // -1 -- 1
 
     public State(double angularVelocity, double speed, double acceleration)
     {
-        AngularVelocity = (int)(angularVelocity * 256);
+        AngularVelocity = (int)(angularVelocity * 1024);
 
         Speed = (int)Math.Round(speed);
         
@@ -403,7 +387,7 @@ public struct State
 public class EnemyData
 {
     public List<State> StateHistory { get; } = new List<State>();
-    public Dictionary<State, List<State>> MarkovChain { get; } = new Dictionary<State, List<State>>();
+    public Dictionary<State, TransitionSegmentTree> MarkovChainTree { get; } = new Dictionary<State, TransitionSegmentTree>();
     public double LastDirection { get; set; }
     public bool HasPrevious { get; set; } = false;
 
@@ -442,5 +426,77 @@ public class Line2D
     {
         return Math.Abs((Y2 - Y1) * px - (X2 - X1) * py + (X2 * Y1 - Y2 * X1)) 
                 / Math.Sqrt(Math.Pow(Y2 - Y1, 2) + Math.Pow(X2 - X1, 2));
+    }
+}
+
+public class TransitionSegmentTree
+{
+    private List<KeyValuePair<State, int>> data;
+    private int size;
+    private (State state, int frequency)[] tree;
+    private Dictionary<State, int> stateToIndex;
+
+    public TransitionSegmentTree()
+    {
+        data = new List<KeyValuePair<State, int>>();
+        stateToIndex = new Dictionary<State, int>();
+        size = 0;
+        tree = new (State, int)[0];
+    }
+
+    public void Add(State s)
+    {
+        if (stateToIndex.ContainsKey(s))
+        {
+            int idx = stateToIndex[s];
+            var kvp = data[idx];
+            data[idx] = new KeyValuePair<State, int>(s, kvp.Value + 1);
+        }
+        else
+        {
+            stateToIndex[s] = data.Count;
+            data.Add(new KeyValuePair<State, int>(s, 1));
+        }
+        RebuildTree();
+    }
+
+    private void RebuildTree()
+    {
+        int n = data.Count;
+        if (n == 0)
+        {
+            tree = new (State, int)[0];
+            size = 0;
+            return;
+        }
+        size = 1;
+        while (size < n) size *= 2;
+        tree = new (State, int)[2 * size];
+        for (int i = 0; i < size; i++)
+        {
+            if (i < n)
+            {
+                tree[size + i] = (data[i].Key, data[i].Value);
+            }
+            else
+            {
+                tree[size + i] = (default(State), 0);
+            }
+        }
+        for (int i = size - 1; i > 0; i--)
+        {
+            var left = tree[2 * i];
+            var right = tree[2 * i + 1];
+            tree[i] = left.frequency >= right.frequency ? left : right;
+        }
+    }
+
+    public State GetMostFrequent()
+    {
+        if (tree.Length > 0)
+        {
+            return tree[1].state;
+        }
+        return default(State);
     }
 }
