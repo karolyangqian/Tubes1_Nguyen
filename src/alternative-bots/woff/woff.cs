@@ -142,14 +142,14 @@ public class Woff : Bot
             EnemyData data = enemyData[myBullets[i].Target];
             if (distance(data.LastX, data.LastY, bullet.X, bullet.Y) < 18)
             {
-                myBullets.RemoveAt(i);
                 data.Type[myBullets[i].Type] += 5;
+                myBullets.RemoveAt(i);
             }
             else if (bullet.X < 0 - BULLET_OFFSET_ARENA || bullet.X > ArenaWidth + BULLET_OFFSET_ARENA || 
                 bullet.Y < 0 - BULLET_OFFSET_ARENA || bullet.Y > ArenaHeight + BULLET_OFFSET_ARENA)
             {
-                myBullets.RemoveAt(i);
                 data.Type[myBullets[i].Type]--;
+                myBullets.RemoveAt(i);
             }
             else 
             {
