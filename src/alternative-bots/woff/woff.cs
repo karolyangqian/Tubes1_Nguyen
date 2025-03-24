@@ -52,6 +52,7 @@ public class Woff : Bot
     private readonly static double  MAX_RADIUS = 300;
     private readonly static double  POINT_COUNT = 36;
     private readonly static double  MIN_DIVISOR = 1e-6;
+    private readonly static int     SAG_LIMIT = 3;
     private readonly static int     NGRAM_ORDER = 4;
     private readonly static int     BULLET_OFFSET_ARENA = 50;
     private readonly static int     ENEMY_GRAVITY_CONSTANT = 300;
@@ -67,12 +68,15 @@ public class Woff : Bot
     static double destY;
 
     static int sag = 1;
+    static int hitsag = 0;
+    static bool dontsag;
 
     Random rand = new Random();
 
     static Dictionary<int, EnemyData> enemyData = new Dictionary<int, EnemyData>();
 
     static List<Bullet> bullets;
+    static List<MyBullet> myBullets;
 
     static void Main()
     {
@@ -96,6 +100,8 @@ public class Woff : Bot
         targetDistance = double.PositiveInfinity;
         enemyDistance = double.PositiveInfinity;
         bullets = new List<Bullet>();
+        myBullets = new List<MyBullet>();
+        dontsag = false;
     }
 
     public override void OnTick(TickEvent e)
@@ -125,6 +131,35 @@ public class Woff : Bot
             }
         }
 
+        for (int i = myBullets.Count - 1; i >= 0; i--)
+        {
+            Bullet bullet = myBullets[i].BulletData;
+            bullet.X += bullet.Speed * Math.Cos(bullet.Direction);
+            bullet.Y += bullet.Speed * Math.Sin(bullet.Direction);
+            g.FillRectangle(myBullets[i].Type == 0 ? Brushes.Black : Brushes.Red, (float)bullet.X, (float)bullet.Y, (float)(3 * bullet.Power), (float)(3 * bullet.Power));
+            // Console.WriteLine("BulletId: " + i + " X: " + bullet.X + " Y: " + bullet.Y);
+
+            EnemyData data = enemyData[myBullets[i].Target];
+            if (distance(data.LastX, data.LastY, bullet.X, bullet.Y) < 18)
+            {
+                myBullets.RemoveAt(i);
+                data.Type[myBullets[i].Type] += 5;
+            }
+            else if (bullet.X < 0 - BULLET_OFFSET_ARENA || bullet.X > ArenaWidth + BULLET_OFFSET_ARENA || 
+                bullet.Y < 0 - BULLET_OFFSET_ARENA || bullet.Y > ArenaHeight + BULLET_OFFSET_ARENA)
+            {
+                myBullets.RemoveAt(i);
+                data.Type[myBullets[i].Type]--;
+            }
+            else 
+            {
+                myBullets[i].BulletData = bullet;
+            }
+        }
+
+        if (hitsag > SAG_LIMIT) dontsag = true;
+        if (!dontsag && EnemyCount == 1 && targetDistance > 250) return;
+        
         // Minimum Risk Movement
         double bestX = X;
         double bestY = Y;
@@ -161,8 +196,6 @@ public class Woff : Bot
             destX = bestX;
             destY = bestY;
         }
-
-        if (EnemyCount == 1 && targetDistance > 250) return;
 
         double turn = BearingTo(destX, destY) * Math.PI / 180;
         SetTurnLeft(180 / Math.PI * Math.Tan(turn));
@@ -214,14 +247,16 @@ public class Woff : Bot
         double energyDrop = data.LastEnergy - e.Energy;
         if (0.11 < energyDrop && energyDrop <= 3)
         {
-            AddVirtualBullet(e.X, e.Y, CalcBulletSpeed(energyDrop), energyDrop);
-            if (EnemyCount == 1 && DistanceRemaining == 0)
+            AddVirtualBullet(e.X, e.Y, CalcBulletSpeed(energyDrop), energyDrop, (180 + DirectionTo(e.X, e.Y)) * Math.PI / 180);
+            AddLinearVirtualBullet(e.X, e.Y, CalcBulletSpeed(energyDrop), energyDrop);
+            if (!dontsag && EnemyCount == 1 && DistanceRemaining == 0)
             {
                 
                 if (X < MOVE_WALL_MARGIN || X > ArenaWidth - MOVE_WALL_MARGIN ||
                     Y < MOVE_WALL_MARGIN || Y > ArenaHeight - MOVE_WALL_MARGIN)
                 {
                     sag = -sag;
+                    hitsag = 0;
                 }
                 double turn = (BearingTo(e.X, e.Y) + (90 - 15 * (targetDistance / 1000)) * sag) * Math.PI / 180;
                 SetTurnLeft(Math.Tan(turn) * 180 / Math.PI);
@@ -251,6 +286,13 @@ public class Woff : Bot
             data.NgramTree[contextKey].Add(currentState);
         }
         data.HasPrevious = true;
+
+        // Head-on fallback
+        if (data.Type.IndexOf(data.Type.Max()) != 0)
+        {
+            SetTurnGunLeft(GunBearingTo(e.X, e.Y));
+            return;
+        }
 
         // --- Play It Forward ---
         double predictedX = e.X;
@@ -296,6 +338,21 @@ public class Woff : Bot
         g.DrawRectangle(redPen, (float)predictedX, (float)predictedY, 20, 20);
         double bearingFromGun = GunBearingTo(predictedX, predictedY);
         SetTurnGunLeft(bearingFromGun);
+    }
+
+    public override void OnBulletFired(BulletFiredEvent e)
+    {
+        AddMyVirtualBullet(X, Y, e.Bullet.Speed, e.Bullet.Power, GunDirection * Math.PI / 180, targetId, 0);
+        EnemyData data = enemyData[targetId];
+        AddMyVirtualBullet(X, Y, e.Bullet.Speed, e.Bullet.Power, DirectionTo(data.LastX, data.LastY) * Math.PI / 180, targetId, 1);
+    }
+
+    public override void OnHitByBullet(HitByBulletEvent e)
+    {
+        if (EnemyCount == 1)
+        {
+            hitsag++;
+        }
     }
 
     public override void OnBotDeath(BotDeathEvent e)
@@ -344,20 +401,21 @@ public class Woff : Bot
         return risk;
     }
     
-    private void AddVirtualBullet(double x, double y, double speed, double power)
+    private void AddVirtualBullet(double x, double y, double speed, double power, double direction)
     {
-        // Head on
-        double headOnDirection = (180 + DirectionTo(x, y)) * Math.PI / 180;
         Bullet bullet = new Bullet
         {
             Speed = speed,
-            Direction = headOnDirection,
-            X = x,
-            Y = y,
+            Direction = direction,
+            X = x + 2 * speed * Math.Cos(direction),
+            Y = y + 2 * speed * Math.Sin(direction),
             Power = power
         };
         bullets.Add(bullet);
+    }
         
+    private void AddLinearVirtualBullet(double x, double y, double speed, double power)
+    {
         // Linear-nya karol
         double vb = CalcBulletSpeed(power);
         double myDir = Direction * Math.PI / 180;
@@ -379,11 +437,26 @@ public class Woff : Bot
         {
             Speed = speed,
             Direction = linearDirection,
-            X = x,
-            Y = y,
+            X = x + 2 * speed * Math.Cos(linearDirection),
+            Y = y + 2 * speed * Math.Sin(linearDirection),
             Power = power * 2
         };
         bullets.Add(bulletLinear);
+    }
+
+    private void AddMyVirtualBullet(double x, double y, double speed, double power, double direction, int target, int type)
+    {
+        MyBullet myBullet = new MyBullet
+        (
+            x + 2 * speed * Math.Cos(direction),
+            y + 2 * speed * Math.Sin(direction),
+            speed,
+            direction,
+            power,
+            target,
+            type
+        );
+        myBullets.Add(myBullet);
     }
     
     private double distanceSq(double x1, double y1, double x2, double y2)
@@ -470,14 +543,14 @@ public class EnemyData
 {
     public List<State> StateHistory { get; } = new List<State>();
     public Dictionary<StateSequence, TransitionSegmentTree> NgramTree { get; } = new Dictionary<StateSequence, TransitionSegmentTree>();
-    public double LastDirection { get; set; }
+    public List<int> Type { get; set; } = new List<int> { 5, 0 };
     public bool HasPrevious { get; set; } = false;
-
+    public bool IsAlive { get; set; } = true;
+    public double LastDirection { get; set; }
     public double LastX { get; set; }
     public double LastY { get; set; }
     public double LastEnergy { get; set; }
     public double LastSpeed { get; set; }
-    public bool IsAlive { get; set; } = true;
 }
 
 public struct Bullet
@@ -487,6 +560,20 @@ public struct Bullet
     public double Speed;
     public double Direction;
     public double Power;
+}
+
+public class MyBullet
+{
+    public Bullet BulletData;
+    public int Target;
+    public int Type;
+
+    public MyBullet(double x, double y, double speed, double direction, double power, int target, int type)
+    {
+        BulletData = new Bullet { X = x, Y = y, Speed = speed, Direction = direction, Power = power };
+        Target = target;
+        Type = type;
+    }
 }
 
 public class Line2D
