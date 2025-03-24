@@ -68,7 +68,7 @@ public class Woff : Bot
     static double destY;
 
     static int sag = 1;
-    static int hitsag = 0;
+    static int hitsag;
     static bool dontsag;
 
     Random rand = new Random();
@@ -102,6 +102,7 @@ public class Woff : Bot
         bullets = new List<Bullet>();
         myBullets = new List<MyBullet>();
         dontsag = false;
+        hitsag = 0;
     }
 
     public override void OnTick(TickEvent e)
