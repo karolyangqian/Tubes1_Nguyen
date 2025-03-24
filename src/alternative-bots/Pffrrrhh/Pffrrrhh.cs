@@ -39,7 +39,7 @@ public class Pffrrrhh : Bot
         if (!double.IsNaN(radarAngle))
             SetTurnRadarLeft(radarAngle);
         
-        double firePower = Math.Min(3 * Energy / DistanceTo(e.X, e.Y), 0.1);
+        double firePower = Math.Max(3 * Energy / DistanceTo(e.X, e.Y), 0.1);
         if (GunTurnRemaining == 0)
         {
             SetFire(firePower);
