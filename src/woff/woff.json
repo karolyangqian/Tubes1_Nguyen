@@ -1,12 +1,12 @@
 {
-  "name": "Pffrrrhh",
+  "name": "woff",
   "version": "1.0",
   "authors": ["Ahmad Ibrahim",
   "Karol Yangqian P",
   "Aria Judhistira"],
-  "description": "Pffrrrhh 1.0",
+  "description": "woff 1.0",
   "homepage": "",
-  "countryCodes": ["id"],
+  "countryCodes": [""],
   "platform": ".Net 9.0",
   "programmingLang": "C# 10.0"
 }
