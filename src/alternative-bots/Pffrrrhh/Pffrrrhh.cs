@@ -11,8 +11,6 @@ using Robocode.TankRoyale.BotApi.Events;
 // ------------------------------------------------------------------
 public class Pffrrrhh : Bot
 {   
-    private Random random = new Random();
-    
     static void Main(string[] args)
     {
         new Pffrrrhh().Start();
@@ -25,15 +23,14 @@ public class Pffrrrhh : Bot
         AdjustRadarForBodyTurn = true;
         AdjustGunForBodyTurn = true;
         SetTurnRadarRight(double.PositiveInfinity);
-    }
 
-    public override void OnTick(TickEvent e)
-    {
-        BodyColor = Color.FromArgb(random.Next(256), random.Next(256), random.Next(256));
-        TurretColor = Color.FromArgb(random.Next(256), random.Next(256), random.Next(256));
-        RadarColor = Color.FromArgb(random.Next(256), random.Next(256), random.Next(256));
-        BulletColor = Color.FromArgb(random.Next(256), random.Next(256), random.Next(256));
-        ScanColor = Color.FromArgb(random.Next(256), random.Next(256), random.Next(256));
+        BodyColor = Color.FromArgb(150, 75, 0);
+        TurretColor = Color.FromArgb(150, 75, 0);
+        RadarColor = Color.FromArgb(150, 75, 0);
+        BulletColor = Color.FromArgb(150, 75, 0);
+        ScanColor = Color.FromArgb(150, 75, 0);
+        TracksColor = Color.FromArgb(150, 75, 0);
+        ScanColor = Color.FromArgb(150, 75, 0);
     }
 
     public override void OnScannedBot(ScannedBotEvent e)
@@ -42,7 +39,7 @@ public class Pffrrrhh : Bot
         if (!double.IsNaN(radarAngle))
             SetTurnRadarLeft(radarAngle);
         
-        double firePower = 3;
+        double firePower = Math.Min(3 * Energy / DistanceTo(e.X, e.Y), 0.1);
         if (GunTurnRemaining == 0)
         {
             SetFire(firePower);
