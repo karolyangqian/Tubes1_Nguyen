@@ -57,4 +57,5 @@ Pada repositori ini, terdapat 4 robot yang kami kembangkan, yakni Qwuck, Schmell
 
 
 ## Tautan
-(isi link yt)
+Berikut adalah ![link](https://docs.google.com/document/d/1Fu5Saizqs6S2iEeHBmznxTnfNUWdra4XK7Y4Ibfnsd0/edit?usp=sharing) ke file docs laporan.
+
