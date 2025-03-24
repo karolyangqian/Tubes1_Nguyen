@@ -9,7 +9,7 @@ using Robocode.TankRoyale.BotApi.Events;
 // woff 🐶
 // ------------------------------------------------------------------
 // Targeting: Play It Forward
-// Movement: Minimum Risk & Stop and Go
+// Movement: Anti-Gravity & Stop and Go
 // ------------------------------------------------------------------
 /*
 
@@ -58,6 +58,7 @@ public class Woff : Bot
     private readonly static int     ENEMY_GRAVITY_CONSTANT = 300;
     private readonly static int     BULLET_GRAVITY_CONSTANT = 10;
     private readonly static int     LAST_LOC_GRAVITY_CONSTANT = 10;
+    private readonly static int     CORNER_CONSTANT = 100;
 
     // Global variables
     static int targetId;
@@ -161,10 +162,10 @@ public class Woff : Bot
         if (hitsag > SAG_LIMIT) dontsag = true;
         if (!dontsag && EnemyCount == 1 && targetDistance > 250) return;
         
-        // Minimum Risk Movement
+        // Anti-Gravity
         double bestX = X;
         double bestY = Y;
-        double minRisk = double.PositiveInfinity;
+        double minGrav = double.PositiveInfinity;
 
         for (int i = 0; i < POINT_COUNT; i++)
         {
@@ -182,17 +183,17 @@ public class Woff : Bot
                     continue;
                 }
 
-                double risk = CalcRisk(x, y);
-                if (risk < minRisk)
+                double grav = CalcGrav(x, y);
+                if (grav < minGrav)
                 {
-                    minRisk = risk;
+                    minGrav = grav;
                     bestX = x;
                     bestY = y;
                 }
             }
         }
 
-        if (minRisk < CalcRisk(destX, destY) * 0.9)
+        if (minGrav < CalcGrav(destX, destY) * 0.9)
         {
             destX = bestX;
             destY = bestY;
@@ -367,15 +368,15 @@ public class Woff : Bot
     }
 
     // --- Helper Functions ---
-    private double CalcRisk(double candidateX, double candidateY)
+    private double CalcGrav(double candidateX, double candidateY)
     {
-        double risk = 0;
+        double grav = 0;
 
         foreach (EnemyData enemy in enemyData.Values)
         {
             if (enemy.IsAlive)
             {
-                risk += ENEMY_GRAVITY_CONSTANT * (enemy.LastEnergy - ENEMY_ENERGY_THRESHOLD) / 
+                grav += ENEMY_GRAVITY_CONSTANT * (enemy.LastEnergy - ENEMY_ENERGY_THRESHOLD) / 
                         (distanceSq(candidateX, candidateY, enemy.LastX, enemy.LastY) + MIN_DIVISOR);
             }
         }
@@ -390,16 +391,21 @@ public class Woff : Bot
             );
             
             double d = bulletLine.DistanceToPoint(candidateX, candidateY);
-            risk += BULLET_GRAVITY_CONSTANT * bullet.Power / (d * d + MIN_DIVISOR);
+            grav += BULLET_GRAVITY_CONSTANT * bullet.Power / (d * d + MIN_DIVISOR);
 
         }
 
-        risk += LAST_LOC_GRAVITY_CONSTANT * rand.NextDouble() / 
+        grav += LAST_LOC_GRAVITY_CONSTANT * rand.NextDouble() / 
                 (Math.Pow(DistanceTo(candidateX, candidateY), 2) + MIN_DIVISOR);
         if (targetId != 0)
-            risk += targetDistance - DistanceTo(enemyData[targetId].LastX, enemyData[targetId].LastY);
+            grav += targetDistance - DistanceTo(enemyData[targetId].LastX, enemyData[targetId].LastY);
+            
+        grav += CORNER_CONSTANT / distanceSq(candidateX, candidateY, 0, 0);
+        grav += CORNER_CONSTANT / distanceSq(candidateX, candidateY, 0, ArenaHeight);
+        grav += CORNER_CONSTANT / distanceSq(candidateX, candidateY, ArenaWidth, 0);
+        grav += CORNER_CONSTANT / distanceSq(candidateX, candidateY, ArenaWidth, ArenaHeight);
 
-        return risk;
+        return grav;
     }
     
     private void AddVirtualBullet(double x, double y, double speed, double power, double direction)
