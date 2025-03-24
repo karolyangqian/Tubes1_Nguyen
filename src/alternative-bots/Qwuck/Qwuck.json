@@ -1,0 +1,13 @@
+{
+  "name": "Qwuck",
+  "version": "1.0",
+  "authors": [
+    "Karol Yangqian P",
+    "Ahmad Ibrahim",
+    "Aria Judhistira"],
+  "description": "Targeting: Head on targeting\nMovement: Minimum risk corner, wall avoidance, walking stick, and sinusoidal oscillation",
+  "homepage": "https://github.com/karolyangqian/Tubes1_Nguyen",
+  "countryCodes": ["id"],
+  "platform": ".Net 9.0",
+  "programmingLang": "C# 10.0"
+}

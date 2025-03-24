@@ -6,19 +6,21 @@ using Robocode.TankRoyale.BotApi.Events;
 // ------------------------------------------------------------------
 // Quack
 // ------------------------------------------------------------------
-// A sample bot original made for Robocode by Mathew Nelson.
-// Ported to Robocode Tank Royale by Flemming N. Larsen.
-//
-// Sits still. Tracks and fires at the nearest bot it sees.
+// Targeting: linear
+// Movement: random speed and turn rate
 // ------------------------------------------------------------------
 public class Quack : Bot
 {
-    private const double MAX_SHOOT_RANGE_THRESH = 600;
     private double scannedEnemyX;
     private double scannedEnemyY;
     private double scannedEnemySpeed;
     private double scannedEnemyDirection;
     private bool enemyDetected;
+    private const double minSpeed = 2;
+    private const double maxSpeed = 10;
+    private const double maxTurnRate = 15;
+    private const double minTurnRate = 5;
+    private const double GUN_FACTOR = 10;
 
 
     // The main method starts our bot
@@ -44,54 +46,44 @@ public class Quack : Bot
         AdjustRadarForGunTurn = true;
         AdjustRadarForBodyTurn = true;
         enemyDetected = false;
-
-        QuackDriverV1();
+        
+        SetTurnRadarRight(double.PositiveInfinity);
+        
+        MaxSpeed = maxSpeed;
+        MaxTurnRate = maxTurnRate;
+        TargetSpeed = 5;
+        TurnRate = 10;
     }
 
 // ================================ DRIVERS ==================================
 
-    public void QuackDriverV1() {
-        // SetTurnLeft(10);
-        // Limit our speed to 5
-        MaxSpeed = 5;
-        // Start moving (and turning)
-        // SetForward(10);
-        TargetSpeed = 5;
-        TurnRate = 10;
-        while (IsRunning)
-        {
-            if (enemyDetected) {
-                TrackScanAt(scannedEnemyX, scannedEnemyY);
-                // ShootAt(scannedEnemyX, scannedEnemyY, 1, 3);
-                ShootPredict(scannedEnemyX, scannedEnemyY, scannedEnemySpeed, scannedEnemyDirection, CalculateFirePower(scannedEnemyX, scannedEnemyY));
-                enemyDetected = false;
-            } else {
-                TurnRadarLeft(20);
-            }
-        }
-    }
 
 // ================================ EVENT HANDLERS ==================================
 
-    // We scanned another bot -> we have a target, so go get it
-    // public override void OnScannedBot(ScannedBotEvent e)
-    // {
-    //     // Calculate direction of the scanned bot and bearing to it for the gun
-    //     var bearingFromGun = GunBearingTo(e.X, e.Y);
+    public override void OnTick(TickEvent tickEvent)
+    {
+        if (enemyDetected) {
+            TrackScanAt(scannedEnemyX, scannedEnemyY);
+            // ShootAt(scannedEnemyX, scannedEnemyY, 1, 3);
+            ShootPredict(scannedEnemyX, scannedEnemyY, scannedEnemySpeed, scannedEnemyDirection, CalculateFirePower(scannedEnemyX, scannedEnemyY));
+            enemyDetected = false;
+        } else {
+            SetTurnRadarLeft(20);
+        }
+        Random rnd = new Random();
+        double newSpeed = TargetSpeed + rnd.NextDouble()*2 * GetRandomSign();
+        if (newSpeed > minSpeed && newSpeed < maxSpeed) {
+            TargetSpeed = newSpeed;
+        }
 
-    //     // Turn the gun toward the scanned bot
-    //     TurnGunLeft(bearingFromGun);
-
-    //     // If it is close enough, fire!
-    //     if (Math.Abs(bearingFromGun) <= 3 && GunHeat == 0)
-    //         Fire(Math.Min(3 - Math.Abs(bearingFromGun), Energy - .1));
-
-    //     // Generates another scan event if we see a bot.
-    //     // We only need to call this if the gun (and therefore radar)
-    //     // are not turning. Otherwise, scan is called automatically.
-    //     if (bearingFromGun == 0)
-    //         Rescan();
-    // }
+        double newTurnRate = TurnRate + rnd.NextDouble()*2 * GetRandomSign();
+        if (newTurnRate > minTurnRate && newTurnRate < maxTurnRate) {
+            TurnRate = newTurnRate;
+        }
+        // TargetSpeed =  rnd.NextDouble() * GetRandomSign();
+        // TurnRate += rnd.NextDouble() * GetRandomSign();
+        // Console.WriteLine(string.Format("GunHeat: {0:0.00} Energy: {1:0.00}", GunHeat, Energy));
+    }
 
     public override void OnScannedBot(ScannedBotEvent e)
     {
@@ -100,6 +92,12 @@ public class Quack : Bot
         scannedEnemySpeed = e.Speed;
         scannedEnemyDirection = e.Direction;
         enemyDetected = true;
+        // double radarAngle = double.PositiveInfinity * NormalizeRelativeAngle(RadarBearingTo(e.X, e.Y));
+
+        // if (!double.IsNaN(radarAngle) && (GunHeat < 1 || EnemyCount == 1)) 
+        // {
+        //     SetTurnRadarLeft(radarAngle);
+        // }
     }
 
     // We won the round -> do a victory dance!
@@ -112,10 +110,10 @@ public class Quack : Bot
 // ================================ FEATURES ==================================
 
     private void TrackScanAt(double x, double y) {
-        var bearingFromRadar = RadarBearingTo(x, y);
-        TurnRadarLeft(bearingFromRadar + 10);
-        bearingFromRadar = RadarBearingTo(x, y);
-        TurnRadarLeft(bearingFromRadar - 10);
+        var bearingFromRadar = NormalizeRelativeAngle(RadarBearingTo(x, y));
+        SetTurnRadarLeft(bearingFromRadar + (bearingFromRadar > 0 ? 20 : -20));
+        // bearingFromRadar = RadarBearingTo(x, y);
+        // TurnRadarLeft(bearingFromRadar - 10);
     }
 
     private void TrackScanWithGunAt(double x, double y) {
@@ -139,9 +137,7 @@ public class Quack : Bot
 
     private void ShootPredict(double targetX, double targetY, double targetSpeed, double targetDirection, double firePower) {
         double bulletSpeed = CalcBulletSpeed(firePower);
-        
-        double dx = targetX - X;
-        double dy = targetY - Y;
+
         // double absBearing = Math.Atan2(dy, dx);
         
         double enemyDir = targetDirection * Math.PI / 180.0;
@@ -151,36 +147,33 @@ public class Quack : Bot
         
         // double gunDirection = absBearing + leadAngle;
         
-        double distance = Math.Sqrt(dx * dx + dy * dy);
-        double time = distance / bulletSpeed;
+        double time = DistanceTo(targetX, targetY) / bulletSpeed;
         
         double predictedX = targetX + targetSpeed * time * Math.Cos(enemyDir);
         double predictedY = targetY + targetSpeed * time * Math.Sin(enemyDir);
         
-        double bearingFromGun = GunBearingTo(predictedX, predictedY);
+        double angleToPredicted = GunBearingTo(predictedX, predictedY);
+        double angleToEnemy = GunBearingTo(targetX, targetY);
+        double turn = angleToPredicted > angleToEnemy ? angleToPredicted - 5 : angleToPredicted + 5;
         
-        TurnGunLeft(bearingFromGun);
-        Fire(firePower);
+        SetFire(firePower);
+        SetTurnGunLeft(turn);
     }
 
     private double CalculateFirePower(double targetX, double targetY) {
-        double dist = DistanceTo(targetX, targetY);
-        dist = dist > MAX_SHOOT_RANGE_THRESH ? MAX_SHOOT_RANGE_THRESH : dist;
-        double val = (MAX_SHOOT_RANGE_THRESH - dist) / MAX_SHOOT_RANGE_THRESH;
-        return 1 + 2 * val;
+        // double MAX_POWER_RADIUS = Math.Sqrt(ArenaHeight * ArenaHeight + ArenaWidth * ArenaWidth) * 0.3;
+        // double MIN_POWER_RADIUS = MAX_POWER_RADIUS * 0.2;
+        // double MAX_POWER = 3;
+        // double MIN_POWER = 0.5;
+
+        // double dist = DistanceTo(targetX, targetY);
+        // double val = dist > MAX_POWER_RADIUS ? MAX_POWER_RADIUS : dist < MIN_POWER_RADIUS ? MIN_POWER_RADIUS : dist;
+        // double factor = (MAX_POWER_RADIUS - MIN_POWER_RADIUS - (val - MIN_POWER_RADIUS)) / (MAX_POWER_RADIUS - MIN_POWER_RADIUS);
+        // return MIN_POWER + factor * (MAX_POWER - MIN_POWER);
+        return Energy / DistanceTo(targetX, targetY) * GUN_FACTOR;
     }
 
 // ================================ UTILS ==================================
-
-    // normalizes a bearing to between +180 and -180
-    private double NormalizeBearing(double angle) {
-        while (angle >  180) angle -= 360;
-        while (angle < -180) angle += 360;
-        return angle;
-    }
-    private double DegreesToRadians(double degrees) {
-        return degrees * (Math.PI / 180);
-    } 
 
     private int GetRandomSign() {
         var rnd = new Random();
