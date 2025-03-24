@@ -24,11 +24,11 @@ Sebelum menjalankan program, pastikan bahwa Anda sudah menginstal Java dan Dotne
 ### Struktur Program
 ```bash
 ├── src/
-│   ├── Qwuck/…
+│   ├── Woff/…
 │   └── alternative-bots/
+│       ├── Qwuck/…
 │       ├── Schmelly/…
-│       ├── Pffrrrhh/…
-│       └── Woff/…
+│       └── Pffrrrhh/…
 ├── doc/
 │   └── Nguyen.pdf
 └── README.md
@@ -48,10 +48,11 @@ java -jar robocode-tankroyale-gui-0.30.0.jar
 
 ## Deksripsi Robot
 Pada repositori ini, terdapat 4 robot yang kami kembangkan, yakni Qwuck, Schmelly, Pffrrrhh, dan Woff.
-* **Qwuck**: Robot utama kami, strategi yang digunakan Qwuck adalah mencari pojok arena dengan risiko minimum. Setelah mencapai pojok arena tersebut, Qwuck akan melakukan pergerakan melingkar dan menargetkan musuh dengan Energy yang terkecil.
+* **Woff**: isi sendiri
+* **Qwuck**: Strategi Qwuck adalah mencari pojok arena dengan risiko minimum. Setelah mencapai pojok arena tersebut, Qwuck akan melakukan pergerakan melingkar dan menargetkan musuh dengan Energy yang terkecil.
 * **Schmelly**: Schmelly mengandung implementasi pergerakan Anti-Gravity yang akan menjauhi robot yang telah ia pindai. Schmelly akan mengikuti arah gaya vektor musuh dengan harapan dapat menemukan posisi dengan risiko terkecil.
 * **Pffrrrhh**: Pffrrrhh menganut prinsip "High Risk, High Reward". Sederhananya, ia akan mengincar robot yang ia pindai dan melakukan _ramming_ sekaligus menembaknya. Motivasi robot ini adalah memaksimumkan pengambilan poin tanpa memperhitungkan keselamatannya.
-* **Woff**: isi sendiri
+
 
 ## Tautan
 (isi link yt)
