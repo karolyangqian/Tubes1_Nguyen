@@ -8,7 +8,7 @@ using Robocode.TankRoyale.BotApi.Events;
 // ------------------------------------------------------------------
 // Qwuck
 // ------------------------------------------------------------------
-// Targeting: Head on targeting
+// Targeting: Circular and linear targeting
 // Movement: Minimum risk corner, wall avoidance, walking stick, and sinusoidal oscillation
 // ------------------------------------------------------------------
 /*
