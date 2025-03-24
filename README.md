@@ -48,7 +48,7 @@ java -jar robocode-tankroyale-gui-0.30.0.jar
 
 ## Deksripsi Robot
 Pada repositori ini, terdapat 4 robot yang kami kembangkan, yakni Qwuck, Schmelly, Pffrrrhh, dan Woff.
-* **Woff**: isi sendiri
+* **Woff**: Strategi Woff mengandung implementasi Anti-Gravity, dengan gravitasi berupa bot musuh dan bullet. Woff berasumsi bahwa musuh menembak secara head-on atau linear targeting. Namun, ketika 1v1 Woff akan bergerak dengan secara Stop and Go. Targeting Woff menggunakan Play It Forward, yaitu mensimulasikan pergerakan musuh berdasarkan data yang telah didapatkan selama pertandingan.
 * **Qwuck**: Strategi Qwuck adalah mencari pojok arena dengan risiko minimum. Setelah mencapai pojok arena tersebut, Qwuck akan melakukan pergerakan melingkar dan menargetkan musuh dengan Energy yang terkecil.
 * **Schmelly**: Schmelly mengandung implementasi pergerakan Anti-Gravity yang akan menjauhi robot yang telah ia pindai. Schmelly akan mengikuti arah gaya vektor musuh dengan harapan dapat menemukan posisi dengan risiko terkecil.
 * **Pffrrrhh**: Pffrrrhh menganut prinsip "High Risk, High Reward". Sederhananya, ia akan mengincar robot yang ia pindai dan melakukan _ramming_ sekaligus menembaknya. Motivasi robot ini adalah memaksimumkan pengambilan poin tanpa memperhitungkan keselamatannya.
