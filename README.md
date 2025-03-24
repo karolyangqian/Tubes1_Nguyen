@@ -1,6 +1,8 @@
 # Tugas Besar 1 - IF2211 Strategi Algoritma
 > Penerapan Strategi Algoritma Greedy pada permainan Robocode Tank Royale.
 
+![alt text](<WhatsApp Image 2025-03-24 at 20.33.06_4b5414bb.jpg>)
+
 Tugas besar ini bertujuan untuk mengeksplorasikan dan mengimplementasikan salah satu konsep strategi algoritma yaitu strategi _greedy_ pada robot yang dikembangkan dalam permainan Robocode Tank Royale. 
 
 ## Kelompok 55 - Nguyen
@@ -49,10 +51,11 @@ java -jar robocode-tankroyale-gui-0.30.0.jar
 ## Deksripsi Robot
 Pada repositori ini, terdapat 4 robot yang kami kembangkan, yakni Qwuck, Schmelly, Pffrrrhh, dan Woff.
 * **Woff**: Strategi Woff mengandung implementasi Anti-Gravity, dengan gravitasi berupa bot musuh dan bullet. Woff berasumsi bahwa musuh menembak secara head-on atau linear targeting. Namun, ketika 1v1 Woff akan bergerak dengan secara Stop and Go. Targeting Woff menggunakan Play It Forward, yaitu mensimulasikan pergerakan musuh berdasarkan data yang telah didapatkan selama pertandingan.
-* **Qwuck**: Strategi Qwuck adalah mencari pojok arena dengan risiko minimum. Setelah mencapai pojok arena tersebut, Qwuck akan melakukan pergerakan melingkar dan menargetkan musuh dengan Energy yang terkecil.
+* **Qwuck**: Strategi Qwuck adalah mencari pojok arena dengan risiko minimum. Setelah mencapai pojok arena tersebut, Qwuck akan melakukan pergerakan melingkar dan menargetkan musuh dengan jarak yang terdekat.
 * **Schmelly**: Schmelly mengandung implementasi pergerakan Anti-Gravity yang akan menjauhi robot yang telah ia pindai. Schmelly akan mengikuti arah gaya vektor musuh dengan harapan dapat menemukan posisi dengan risiko terkecil.
 * **Pffrrrhh**: Pffrrrhh menganut prinsip "High Risk, High Reward". Sederhananya, ia akan mengincar robot yang ia pindai dan melakukan _ramming_ sekaligus menembaknya. Motivasi robot ini adalah memaksimumkan pengambilan poin tanpa memperhitungkan keselamatannya.
 
 
 ## Tautan
-(isi link yt)
+Berikut adalah ![link](https://docs.google.com/document/d/1Fu5Saizqs6S2iEeHBmznxTnfNUWdra4XK7Y4Ibfnsd0/edit?usp=sharing) ke file docs laporan.
+
