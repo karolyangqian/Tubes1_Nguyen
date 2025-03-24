@@ -48,8 +48,7 @@ public class Qwuck : Bot
     private int targetId;
     private bool targetLocked;
     private bool isScanningAll;
-    private Point2D predictedPaint= new Point2D(0, 0);
-    private Point2D centerPaint= new Point2D(0, 0);
+    private Queue <Point2D> trail = new Queue<Point2D>();
     
 
     static void Main()
@@ -76,7 +75,7 @@ public class Qwuck : Bot
         AdjustRadarForBodyTurn = true;
 
         // Reiinitialize variables
-        enemies.Clear();
+        enemies = new Dictionary<int, EnemyData>();
         MaxSpeed = MAX_SPEED;
         navigating = true;
         targetId = -1;
@@ -92,10 +91,20 @@ public class Qwuck : Bot
         isScanningAll = false;
 
         // Cari corner teraman
+        corner = new Point2D(CORNER_MARGIN, CORNER_MARGIN);
         corner = SafestCorner();
     }
 
-    public override void OnTick(TickEvent e) {
+    public override void OnTick(TickEvent e) 
+    {
+        // Update trail
+        trail.Enqueue(new Point2D(X, Y));
+        if (trail.Count > 50) {
+            trail.Dequeue();
+        }
+        foreach (Point2D point in trail) {
+            Graphics.FillEllipse(new SolidBrush(Color.FromArgb(0x00, 0x64, 0x64)), (float) point.x, (float) point.y, 2, 2);
+        }
         // Movement 
         if (navigating && !WallAvoidance()) {
             // Bergerak dengan lintasan sinusoidal menuju corner teraman
@@ -141,7 +150,8 @@ public class Qwuck : Bot
         }
     }
 
-    public override void OnScannedBot(ScannedBotEvent e) {
+    public override void OnScannedBot(ScannedBotEvent e) 
+    {
         // Menyimpan informasi setiap robot yang terdeteksi
         if (!enemies.ContainsKey(e.ScannedBotId))
         {
@@ -181,7 +191,8 @@ public class Qwuck : Bot
         }
     }
 
-    public override void OnBotDeath(BotDeathEvent e) {
+    public override void OnBotDeath(BotDeathEvent e) 
+    {
         // Menghapus musuh yang mati dari daftar musuh
         if (enemies.ContainsKey(e.VictimId))
         {
@@ -215,7 +226,8 @@ public class Qwuck : Bot
     }
 
     // Menghindari dinding dengan teknik walking stick
-    private bool WallAvoidance() {
+    private bool WallAvoidance() 
+    {
         Point2D frontStick = CalcStickEnd(0, Direction);
         if (IsOutsideArena(frontStick.x, frontStick.y)) {
             frontStick.x = Math.Max(WALL_MARGIN, Math.Min(ArenaWidth - WALL_MARGIN, frontStick.x));
@@ -225,6 +237,10 @@ public class Qwuck : Bot
             double L = BearingTo(stickL.x, stickL.y);
             double R = BearingTo(stickR.x, stickR.y);
             double F = BearingTo(frontStick.x, frontStick.y);
+
+            Graphics.DrawEllipse(new Pen(Color.FromArgb(0x00, 0x64, 0x64), 2), (float) stickL.x, (float) stickL.y, 20, 20);
+            Graphics.DrawEllipse(new Pen(Color.FromArgb(0x00, 0x64, 0x64), 2), (float) stickR.x, (float) stickR.y, 20, 20);
+            Graphics.DrawEllipse(new Pen(Color.FromArgb(0x00, 0x64, 0x64), 2), (float) frontStick.x, (float) frontStick.y, 20, 20);
 
             if (DistanceTo(stickL.x, stickL.y) < STICK_LENGTH && DistanceTo(stickR.x, stickR.y) < STICK_LENGTH) {
                 MoveTo(ArenaWidth / 2, ArenaHeight / 2);
@@ -244,7 +260,8 @@ public class Qwuck : Bot
         return false;
     }
 
-    private bool IsACorner(double x, double y, double margin) {
+    private bool IsACorner(double x, double y, double margin) 
+    {
         return (x < margin && y < margin) || (x < margin && y > ArenaHeight - margin) || (x > ArenaWidth - margin && y < margin) || (x > ArenaWidth - margin && y > ArenaHeight - margin);
     }
     private bool IsCloseToWall()
@@ -252,12 +269,14 @@ public class Qwuck : Bot
         return X < WALL_MARGIN || X > ArenaWidth - WALL_MARGIN || Y < WALL_MARGIN || Y > ArenaHeight - WALL_MARGIN;
     }
 
-    private bool IsOutsideArena(double x, double y) {
+    private bool IsOutsideArena(double x, double y) 
+    {
         return x < 0 || x > ArenaWidth || y < 0 || y > ArenaHeight;
     }
 
     // Mencari corner teraman dengan menghitung jarak rata-rata dari musuh ke setiap corner
-    private Point2D SafestCorner() {
+    private Point2D SafestCorner() 
+    {
         Point2D[] corners = new Point2D[] {
             new Point2D(CORNER_MARGIN, CORNER_MARGIN),
             new Point2D(CORNER_MARGIN, ArenaHeight - CORNER_MARGIN),
@@ -283,7 +302,8 @@ public class Qwuck : Bot
     }
 
     // Bergerak menuju sebuah titik 
-    private void MoveTo(double x, double y, double vel = 8) {
+    private void MoveTo(double x, double y, double vel = 8) 
+    {
         double turn = vel > 0 ? BearingTo(x, y) : 180 - BearingTo(x, y);
         vel = Math.Abs(vel);
         SetTurnLeft(turn);
@@ -296,12 +316,14 @@ public class Qwuck : Bot
         }
     }
 
-    private void TrackScanAt(double x, double y) {
+    private void TrackScanAt(double x, double y) 
+    {
         var bearingFromRadar = NormalizeRelativeAngle(RadarBearingTo(x, y));
         SetTurnRadarLeft(bearingFromRadar + (bearingFromRadar > 0 ? 20 : -20));
     }
 
-    private int SelectTargetEnemy() {
+    private int SelectTargetEnemy() 
+    {
         double minFactor = double.PositiveInfinity;
         int closestId = -1;
         foreach (int id in enemies.Keys) {
@@ -321,7 +343,8 @@ public class Qwuck : Bot
     }
 
     // Circular targeting dengan kondisi
-    private void CircularTargetingConditional(int enemyId, double firePower) {
+    private void CircularTargetingConditional(int enemyId, double firePower) 
+    {
         if (enemies[enemyId].LastX == enemies[enemyId].PrevX && enemies[enemyId].LastY == enemies[enemyId].PrevY) {
             HeadOnTargeting(enemies[enemyId].LastX, enemies[enemyId].LastY, firePower);
             return;
@@ -345,7 +368,8 @@ public class Qwuck : Bot
 
 
     // Linear targeting menggunakan solusi persamaan kuadratik dari persamaan gerak
-    private void LinearTargeting(double targetX, double targetY, double targetSpeed, double targetDirection, double firePower) {
+    private void LinearTargeting(double targetX, double targetY, double targetSpeed, double targetDirection, double firePower) 
+    {
         double vb = CalcBulletSpeed(firePower);
         double vxt = targetSpeed * Math.Cos(DegreesToRadians(targetDirection));
         double vyt = targetSpeed * Math.Sin(DegreesToRadians(targetDirection));
@@ -394,14 +418,16 @@ public class Qwuck : Bot
     }
 
     // Head on targeting
-    private void HeadOnTargeting(double targetX, double targetY, double firePower) {
+    private void HeadOnTargeting(double targetX, double targetY, double firePower) 
+    {
         double turn = GunBearingTo(targetX, targetY);
         SetTurnGunLeft(turn);
         SetFire(firePower);
     }
 
     // Menghitung stick yang digunakan untuk wall avoidance
-    private (Point2D, Point2D) CalcWalkingStick() {
+    private (Point2D, Point2D) CalcWalkingStick() 
+    {
         Point2D left = CalcStickEnd(90, Direction);
         Point2D right = CalcStickEnd(-90, Direction);
 
@@ -414,7 +440,8 @@ public class Qwuck : Bot
     }
 
     // Menghitung ujung stick
-    private Point2D CalcStickEnd(double angle, double heading, double length = STICK_LENGTH, Point2D center = null) {
+    private Point2D CalcStickEnd(double angle, double heading, double length = STICK_LENGTH, Point2D center = null) 
+    {
         if (center == null) {
             center = new Point2D(X, Y);
         }
@@ -424,15 +451,18 @@ public class Qwuck : Bot
         return new Point2D(x, y);
     }
 
-    private double DegreesToRadians(double degrees) {
+    private double DegreesToRadians(double degrees) 
+    {
         return degrees * Math.PI / 180;
     }
 
-    private double RadiansToDegrees(double radians) {
+    private double RadiansToDegrees(double radians) 
+    {
         return radians * 180 / Math.PI;
     }
 
-    private Point2D rotatePoint(Point2D point, Point2D center, double angle) {
+    private Point2D rotatePoint(Point2D point, Point2D center, double angle) 
+    {
         double x = center.x + (point.x - center.x) * Math.Cos(DegreesToRadians(angle)) - (point.y - center.y) * Math.Sin(DegreesToRadians(angle));
         double y = center.y + (point.x - center.x) * Math.Sin(DegreesToRadians(angle)) + (point.y - center.y) * Math.Cos(DegreesToRadians(angle));
         return new Point2D(x, y);
