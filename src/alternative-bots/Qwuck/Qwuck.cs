@@ -30,13 +30,16 @@ public class Qwuck : Bot
     private double GUN_FACTOR = 5;
 
     // Reinitialized in Run()
-    private Dictionary<int, EnemyData> enemies = new Dictionary<int, EnemyData>();
+    private Dictionary<int, EnemyData> enemies =  new Dictionary<int, EnemyData>();
     private Random random = new Random();
-    private Point2D corner = new Point2D(0, 0);
+    private Point2D corner = new Point2D(CORNER_MARGIN, CORNER_MARGIN);
     private bool navigating;
     private bool oneVsOne;
     private int targetId;
     private bool targetLocked;
+    private bool isScanningAll;
+    private Point2D predictedPaint= new Point2D(0, 0);
+    private Point2D centerPaint= new Point2D(0, 0);
     
 
     static void Main()
@@ -50,50 +53,55 @@ public class Qwuck : Bot
     {
         Console.WriteLine("Hello! I'm Qwuck!");
         
+        // Warna robot
         BodyColor = Color.FromArgb(0x00, 0x64, 0x64); // Dark cyan
         TurretColor = Color.Yellow;
         RadarColor = Color.FromArgb(0x00, 0xC8, 0x00);   // lime
         BulletColor = Color.FromArgb(0x00, 0x96, 0x32); // green
-        ScanColor = Color.Red;
+        ScanColor = Color.FromArgb(0x00, 0xC8, 0x00); // lime
 
+        // Membuat putaran setiap komponen independen
         AdjustGunForBodyTurn = true;
         AdjustRadarForGunTurn = true;
         AdjustRadarForBodyTurn = true;
 
+        // Reiinitialize variables
+        enemies.Clear();
         MaxSpeed = MAX_SPEED;
         navigating = true;
         targetId = -1;
         targetLocked = false;
         oneVsOne = false;
+        isScanningAll = true;
 
-        double startTime = DateTime.Now.Millisecond;
-
+        // Scan semua musuh
         for (int i = 0; i < 8; i++) {
             TurnRadarRight(45);
         }
-        Console.WriteLine(string.Format("{0}", enemies.Count));
 
+        isScanningAll = false;
+
+        // Cari corner teraman
         corner = SafestCorner();
-    } 
+    }
 
     public override void OnTick(TickEvent e) {
-        // Console.WriteLine(string.Format("Safest corner: {0:0.00} {1:0.00}", corner.x, corner.y));
-
+        // Movement 
         if (navigating && !WallAvoidance()) {
-            // Console.WriteLine(string.Format("Distance to corner: {0:0.00} {1}", DistanceTo(corner.x, corner.y), navigating));
+            // Bergerak dengan lintasan sinusoidal menuju corner teraman
             double turn = BearingTo(corner.x, corner.y);
-            Point2D magicStick = CalcStickEnd(turn + 40 * (Math.Sin(DateTime.Now.Millisecond * 2 * Math.PI / 1100)));
-            MoveTo(magicStick.x, magicStick.y);
+            Point2D walkingStick = CalcStickEnd(turn + 40 * (Math.Sin(TurnNumber * 2 * Math.PI / 40)), Direction);
+            MoveTo(walkingStick.x, walkingStick.y);
             if (DistanceTo(corner.x, corner.y) < OSCILLATION_RADIUS) {
                 TargetSpeed = 0;
-                // SetTurnLeft(90);
                 navigating = false;
             }
         } else {
+            // Berputar di corner teraman
             Oscillate();
         }
-        // Console.WriteLine(string.Format("Distance to corner: {0:0.00} {1}", DistanceTo(corner.x, corner.y), navigating));
 
+        // Kembali ke corner teraman jika terlalu jauh atau corner tidak aman
         if (DistanceTo(corner.x, corner.y) > 4 * OSCILLATION_RADIUS) {
             navigating = true;
         }
@@ -103,26 +111,28 @@ public class Qwuck : Bot
             corner = SafestCorner();
         }
 
+        // Targeting
         if (oneVsOne) {
+            // Jika hanya ada satu musuh, lakukan locking scan
             if (targetLocked) {
-                // Console.WriteLine(string.Format("Targeting: {0:0.00} {1:0.00}", targetId, enemies[targetId].LastEnergy));
                 TrackScanAt(enemies[targetId].LastX, enemies[targetId].LastY);
-                ShootPredict(targetId, CalcFirePower(enemies[targetId].LastX, enemies[targetId].LastY));
+                CircularTargetingConditional(targetId, CalcFirePower(enemies[targetId].LastX, enemies[targetId].LastY));
                 targetLocked = false;
             } else {
                 SetTurnRadarLeft(20);
             }
         } else {
+            // Jika ada lebih dari satu musuh, scan semua musuh dan pilih target terdekat
             SetTurnRadarLeft(20);
             int selectId = SelectTargetEnemy();
             if (selectId != -1) {
-                ShootPredict(selectId, CalcFirePower(enemies[selectId].LastX, enemies[selectId].LastY));
+                CircularTargetingConditional(selectId, CalcFirePower(enemies[selectId].LastX, enemies[selectId].LastY));
             }
         }
     }
 
     public override void OnScannedBot(ScannedBotEvent e) {
-        Console.WriteLine(string.Format("Scanned: {0:0.00}", e.ScannedBotId));
+        // Menyimpan informasi setiap robot yang terdeteksi
         if (!enemies.ContainsKey(e.ScannedBotId))
         {
             enemies[e.ScannedBotId] = new EnemyData();
@@ -131,43 +141,38 @@ public class Qwuck : Bot
             enemies[e.ScannedBotId].LastEnergy = e.Energy;
             enemies[e.ScannedBotId].LastSpeed = e.Speed;
             enemies[e.ScannedBotId].LastDirection = e.Direction;
-            enemies[e.ScannedBotId].LastTime = DateTime.Now.Millisecond;
+            enemies[e.ScannedBotId].LastTurnNumber = TurnNumber;
         }
 
         enemies[e.ScannedBotId].PrevX = enemies[e.ScannedBotId].LastX;
         enemies[e.ScannedBotId].PrevY = enemies[e.ScannedBotId].LastY;
         enemies[e.ScannedBotId].PrevDirection = enemies[e.ScannedBotId].LastDirection;
         enemies[e.ScannedBotId].PrevSpeed = enemies[e.ScannedBotId].LastSpeed;
-        enemies[e.ScannedBotId].PrevTime = enemies[e.ScannedBotId].LastTime;
+        enemies[e.ScannedBotId].PrevTurnNumber = enemies[e.ScannedBotId].LastTurnNumber;
 
         enemies[e.ScannedBotId].LastX = e.X;
         enemies[e.ScannedBotId].LastY = e.Y;
         enemies[e.ScannedBotId].LastSpeed = e.Speed;
         enemies[e.ScannedBotId].LastDirection = e.Direction;
         enemies[e.ScannedBotId].LastEnergy = e.Energy;
-        enemies[e.ScannedBotId].LastTime = DateTime.Now.Millisecond;
+        enemies[e.ScannedBotId].LastTurnNumber = TurnNumber;
 
-        // Console.WriteLine(string.Format("id: {0:0} x: {1:0.00} y: {2:0.00} energy: {3:0.00} speed: {4:0.00} dir: {5:0.00}", 
-        //     e.ScannedBotId, 
-        //     e.X,
-        //     e.Y,
-        //     e.Energy,
-        //     e.Speed,
-        //     e.Direction
-        //     ));
-        // Console.WriteLine(string.Format("count: {0:0.00}", enemies.Count));
-        if (DistanceTo(e.X, e.Y) < 200 || enemies.Count == 1) {
+        // Memilih target jika hanya ada satu musuh atau musuh yang terdeteksi terlalu dekat
+        if ((DistanceTo(e.X, e.Y) < 200 || enemies.Count == 1) && !isScanningAll) {
             targetId = e.ScannedBotId;
             oneVsOne = true;
         } else {
             oneVsOne = false;
         }
+
+        // Lock target
         if (e.ScannedBotId == targetId) {
             targetLocked = true;
         }
     }
 
     public override void OnBotDeath(BotDeathEvent e) {
+        // Menghapus musuh yang mati dari daftar musuh
         if (enemies.ContainsKey(e.VictimId))
         {
             enemies.Remove(e.VictimId);
@@ -182,18 +187,15 @@ public class Qwuck : Bot
         }
     }
 
-    public override void OnHitWall(HitWallEvent botHitWallEvent) {
-        // Console.WriteLine("Hit Wallllllllllllllllllllllllll");
-    }
 
 // ========================== METHODS ===============================
 
+    // Bergerak dengan lintasan  melingkar sinusoidal
     private void Oscillate()
     {
         if (!WallAvoidance()) {
-            double turn = 20 + 40 * (Math.Sin(DateTime.Now.Millisecond * 2 * Math.PI / 1400));
-            // Console.WriteLine(string.Format("Turn: {0:0.00}", turn));
-            Point2D walkStick = CalcStickEnd(turn);
+            double turn = 20 + 40 * (Math.Sin(TurnNumber * 2 * Math.PI / 45));
+            Point2D walkStick = CalcStickEnd(turn, Direction);
 
             double newX = Math.Max(WALL_MARGIN, Math.Min(ArenaWidth - WALL_MARGIN, walkStick.x));
             double newY = Math.Max(WALL_MARGIN, Math.Min(ArenaHeight - WALL_MARGIN, walkStick.y));
@@ -202,13 +204,14 @@ public class Qwuck : Bot
         }
     }
 
+    // Menghindari dinding dengan teknik walking stick
     private bool WallAvoidance() {
-        Point2D frontStick = CalcStickEnd(0);
+        Point2D frontStick = CalcStickEnd(0, Direction);
         if (IsOutsideArena(frontStick.x, frontStick.y)) {
             frontStick.x = Math.Max(WALL_MARGIN, Math.Min(ArenaWidth - WALL_MARGIN, frontStick.x));
             frontStick.y = Math.Max(WALL_MARGIN, Math.Min(ArenaHeight - WALL_MARGIN, frontStick.y));
             
-            var (stickL, stickR) = CalcMagicStick();
+            var (stickL, stickR) = CalcWalkingStick();
             double L = BearingTo(stickL.x, stickL.y);
             double R = BearingTo(stickR.x, stickR.y);
             double F = BearingTo(frontStick.x, frontStick.y);
@@ -218,13 +221,8 @@ public class Qwuck : Bot
                 return true;
             }
 
-            // Console.WriteLine(string.Format("L: {0:0.00} R: {1:0.00} F: {2:0.00}", L, R, F));
-
             double angleL = Math.Abs(L - F);
             double angleR = Math.Abs(R - F);
-
-            // Console.WriteLine(string.Format("angleL: {0:0.00} angleR: {1:0.00}", angleL, angleR));
-
 
             if (Math.Abs(angleL) < Math.Abs(angleR)) {
                 MoveTo(stickL.x, stickL.y);
@@ -248,6 +246,7 @@ public class Qwuck : Bot
         return x < 0 || x > ArenaWidth || y < 0 || y > ArenaHeight;
     }
 
+    // Mencari corner teraman dengan menghitung jarak rata-rata dari musuh ke setiap corner
     private Point2D SafestCorner() {
         Point2D[] corners = new Point2D[] {
             new Point2D(CORNER_MARGIN, CORNER_MARGIN),
@@ -255,13 +254,14 @@ public class Qwuck : Bot
             new Point2D(ArenaWidth - CORNER_MARGIN, CORNER_MARGIN),
             new Point2D(ArenaWidth - CORNER_MARGIN, ArenaHeight - CORNER_MARGIN)
         };
-        Point2D safest = corners[0];
+        Point2D safest = new Point2D(CORNER_MARGIN, CORNER_MARGIN);
         double maxDistance = 0;
         double sumDistance = 0;
         foreach (Point2D corner in corners) {
             foreach (EnemyData enemy in enemies.Values) {
                 sumDistance += Math.Sqrt(Math.Pow(corner.x - enemy.LastX, 2) + Math.Pow(corner.y - enemy.LastY, 2));
             }
+            sumDistance /= enemies.Count > 0 ? enemies.Count : 1;
             if (sumDistance > maxDistance) {
                 maxDistance = sumDistance;
                 safest = corner;
@@ -272,9 +272,9 @@ public class Qwuck : Bot
         return safest;
     }
 
+    // Bergerak menuju sebuah titik 
     private void MoveTo(double x, double y, double vel = 8) {
         double turn = vel > 0 ? BearingTo(x, y) : 180 - BearingTo(x, y);
-        // Console.WriteLine(string.Format("Turn: {0:0.00}", turn));
         vel = Math.Abs(vel);
         SetTurnLeft(turn);
         double turnRadius = Math.Abs((180 - Math.Abs(turn)) / 180 * vel / (TurnRate == 0 ? 1 : TurnRate));
@@ -284,8 +284,6 @@ public class Qwuck : Bot
         } else {
             TargetSpeed = Math.Abs(turn != 0 ? TurnRate * turnRadius : vel);
         }
-        // Console.WriteLine(string.Format("MoveTo: {0:0.00} {1:0.00}", x, y));
-
     }
 
     private void TrackScanAt(double x, double y) {
@@ -298,8 +296,7 @@ public class Qwuck : Bot
         int closestId = -1;
         foreach (int id in enemies.Keys) {
             double distance = DistanceTo(enemies[id].LastX, enemies[id].LastY);
-            double energy = enemies[id].LastEnergy;
-            double factor = distance / energy;
+            double factor = distance;
             if (factor < minFactor) {
                 minFactor = factor;
                 closestId = id;
@@ -313,49 +310,33 @@ public class Qwuck : Bot
         return Energy / DistanceTo(targetX, targetY) * GUN_FACTOR;
     }
 
-    private void ShootPredict(int enemyId, double firePower) {
-        // Linear targeting
-        // LinearTargeting(targetX, targetY, targetSpeed, targetDirection, firePower);
-
-        // MEA targeting
-        // double mea = NormalizeRelativeAngle(Math.Asin(targetSpeed / CalcBulletSpeed(firePower)) * 180 / Math.PI);
-        // Console.WriteLine(string.Format("MEA: {0:0.00} turn: {1:0.00}", mea, turn));
-
-        // Head on targeting
-        // HeadOnTargeting(targetX, targetY, firePower);
-
-        // Circular targeting
-        BasicCircularTargeting(enemyId, firePower);
-    }
-
-    private void BasicCircularTargeting(int enemyId, double firePower) {
+    // Circular targeting dengan kondisi
+    private void CircularTargetingConditional(int enemyId, double firePower) {
         if (enemies[enemyId].LastX == enemies[enemyId].PrevX && enemies[enemyId].LastY == enemies[enemyId].PrevY) {
             HeadOnTargeting(enemies[enemyId].LastX, enemies[enemyId].LastY, firePower);
             return;
         }
         double bulletSpeed = CalcBulletSpeed(firePower);
-        // double dt = enemies[enemyId].LastTime - enemies[enemyId].PrevTime;
-        double dt = (Math.Sqrt(Math.Pow(enemies[enemyId].LastX - enemies[enemyId].PrevX, 2) + Math.Pow(enemies[enemyId].LastY - enemies[enemyId].PrevY, 2))) / enemies[enemyId].LastSpeed;
+        double dt = enemies[enemyId].LastTurnNumber - enemies[enemyId].PrevTurnNumber;
         double w = NormalizeRelativeAngle(enemies[enemyId].LastDirection - enemies[enemyId].PrevDirection) / dt;
         if (Math.Abs(w) < 1) {
             LinearTargeting(enemies[enemyId].LastX, enemies[enemyId].LastY, enemies[enemyId].LastSpeed, enemies[enemyId].LastDirection, firePower);
             return;
         }
-        double timeBullet = DistanceTo(enemies[enemyId].LastX, enemies[enemyId].LastY) / bulletSpeed + dt;
         double r = Math.Abs(enemies[enemyId].LastSpeed / DegreesToRadians(w));
-        Point2D center = CalcStickEnd(w > 0 ? 90 : -90, r, new Point2D(enemies[enemyId].LastX, enemies[enemyId].LastY));
+        Point2D center = CalcStickEnd(w > 0 ? 90 : -90, enemies[enemyId].LastDirection, r, new Point2D(enemies[enemyId].LastX, enemies[enemyId].LastY));
+        double timeBullet = DistanceTo(center.x, center.y) / bulletSpeed;
         double theta = w * timeBullet;
         Point2D predicted = rotatePoint(new Point2D(enemies[enemyId].LastX, enemies[enemyId].LastY), center, theta);
         double turn = GunBearingTo(predicted.x, predicted.y);
-        // Console.WriteLine(string.Format("Predicted: {0:0.00} {1:0.00} Turn: {2:0.00} r: {3:0.00} cx: {4:0.00} cy: {5:0.00} th: {6:0.00} w: {7:0.00}", predicted.x, predicted.y, turn, r, center.x, center.y, theta, w));
         SetTurnGunLeft(turn);
         SetFire(firePower);
     }
 
+
+    // Linear targeting menggunakan solusi persamaan kuadratik dari persamaan gerak
     private void LinearTargeting(double targetX, double targetY, double targetSpeed, double targetDirection, double firePower) {
         double vb = CalcBulletSpeed(firePower);
-        // double time = DistanceTo(targetX, targetY) / bulletSpeed;
-        // double time = DistanceTo(targetX, targetY) / Math.Abs(bulletSpeed - targetSpeed);
         double vxt = targetSpeed * Math.Cos(DegreesToRadians(targetDirection));
         double vyt = targetSpeed * Math.Sin(DegreesToRadians(targetDirection));
         double xt = targetX;
@@ -398,21 +379,21 @@ public class Qwuck : Bot
 
         double angleToPredicted = GunBearingTo(predictedX, predictedY);
         double angleToEnemy = GunBearingTo(targetX, targetY);
-        // double turn = angleToPredicted > angleToEnemy ? angleToPredicted - 2 : angleToPredicted + 2;
         SetTurnGunLeft(angleToPredicted);
         SetFire(firePower);
-        Console.WriteLine(string.Format("Predicted: {0:0.00} {1:0.00} t1: {2:0.00} t2: {3:0.00}", predictedX, predictedY, t1, t2));
     }
 
+    // Head on targeting
     private void HeadOnTargeting(double targetX, double targetY, double firePower) {
         double turn = GunBearingTo(targetX, targetY);
         SetTurnGunLeft(turn);
         SetFire(firePower);
     }
 
-    private (Point2D, Point2D) CalcMagicStick() {
-        Point2D left = CalcStickEnd(90);
-        Point2D right = CalcStickEnd(-90);
+    // Menghitung stick yang digunakan untuk wall avoidance
+    private (Point2D, Point2D) CalcWalkingStick() {
+        Point2D left = CalcStickEnd(90, Direction);
+        Point2D right = CalcStickEnd(-90, Direction);
 
         left.x = Math.Max(WALL_MARGIN, Math.Min(ArenaWidth - WALL_MARGIN, left.x));
         left.y = Math.Max(WALL_MARGIN, Math.Min(ArenaHeight - WALL_MARGIN, left.y));
@@ -422,12 +403,14 @@ public class Qwuck : Bot
         return (left, right);
     }
 
-    private Point2D CalcStickEnd(double angle, double length = STICK_LENGTH, Point2D center = null) {
+    // Menghitung ujung stick
+    private Point2D CalcStickEnd(double angle, double heading, double length = STICK_LENGTH, Point2D center = null) {
         if (center == null) {
             center = new Point2D(X, Y);
         }
-        double x = center.x + (STICK_LENGTH) * Math.Cos(DegreesToRadians(Direction + angle));
-        double y = center.y + (STICK_LENGTH) * Math.Sin(DegreesToRadians(Direction + angle));
+        double x = center.x + (STICK_LENGTH) * Math.Cos(DegreesToRadians(heading + angle));
+        double y = center.y + (STICK_LENGTH) * Math.Sin(DegreesToRadians(heading + angle));
+
         return new Point2D(x, y);
     }
 
@@ -453,12 +436,12 @@ class EnemyData {
     public double LastDirection { get; set; }
     public double LastSpeed { get; set;}
     public double LastEnergy { get; set; }
-    public double LastTime { get; set; }
+    public double LastTurnNumber { get; set; }
     public double PrevX { get; set; }
     public double PrevY { get; set; }
     public double PrevDirection { get; set; }
     public double PrevSpeed { get; set; }
-    public double PrevTime { get; set; }
+    public double PrevTurnNumber { get; set; }
 }
 
 class Point2D {

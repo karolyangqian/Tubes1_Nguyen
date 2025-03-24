@@ -71,7 +71,7 @@ public class TestBot : Bot
         Console.WriteLine(string.Format("Safest corner: {0:0.00} {1:0.00}", corner.x, corner.y));
         if (navigating) {
             double turn = BearingTo(corner.x, corner.y);
-            Point2D magicStick = CalcStickEnd(turn + 40 * (Math.Sin(DateTime.Now.Millisecond * 2 * Math.PI / 1100)));
+            Point2D magicStick = CalcStickEnd(turn + 40 * (Math.Sin(TurnNumber * 2 * Math.PI / 30)));
             MoveTo(magicStick.x, magicStick.y);
             if (DistanceTo(corner.x, corner.y) < 100) {
                 TargetSpeed = 0;
