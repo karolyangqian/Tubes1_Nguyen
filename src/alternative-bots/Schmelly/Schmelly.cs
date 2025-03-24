@@ -26,8 +26,6 @@ public class Schmelly : Bot
     private readonly static double  RADAR_LOCK = 0.7;
     private static double GUN_FACTOR = 5;
     private static EnemyData enemyData;
-
-    // Dictionary<int, EnemyData> enemyData = new Dictionary<int, EnemyData>(); // Track data tank musuh
     
     static void Main()
     {
@@ -47,16 +45,21 @@ public class Schmelly : Bot
         TracksColor = Color.FromArgb(0x8B, 0x45, 0x13); // Coklat
         GunColor = Color.FromArgb(0xFF, 0xFF, 0x00); // Kuning
 
+        // Pasang radar supaya selalu bergerak
         SetTurnRadarLeft(double.PositiveInfinity);
+
+        // Aturan agar setiap komponen tank dapat bergerak secara independen
         AdjustGunForBodyTurn = true;
         AdjustRadarForGunTurn = true;
         AdjustRadarForBodyTurn = true;
     }
 
+    // Aksi yang dilakukan tank pada setiap tick
     public override void OnTick(TickEvent e) 
     {       
+        // Jika musuh terdeteksi, bergerak
         if (enemyDetected) {
-            enemyDetected = false;
+            enemyDetected = false; // Reset flag
             if (isNearWall()) {
                 moveToCenter();
             } else {
@@ -67,6 +70,7 @@ public class Schmelly : Bot
 
 /* ================================= Event Handler ================================= */
 
+    // Aksi yang dilakukan tank jika menemukan musuh
     public override void OnScannedBot(ScannedBotEvent e)
     {
         // Catat data musuh yang di-scan
@@ -75,13 +79,13 @@ public class Schmelly : Bot
         scannedEnemySpeed = e.Speed;
         scannedCurrEnergy = e.Energy;
         scannedEnemyDirection = e.Direction;
-        enemyDetected = true;
+        enemyDetected = true; // Set flag bahwa musuh terdeteksi
         int enemyID = e.ScannedBotId; 
 
         // Cari 'bearing' musuh (derajat musuh terhadap kita)
         double enemyBearing = getEnemyBearing(scannedEnemyX, scannedEnemyY);
         
-        // Catat data musuh dalam dictionary
+        // Catat data musuh sebagai enemyData untuk memudahkan pemrosesan 
         enemyData = new EnemyData(scannedEnemyX + DistanceTo(scannedEnemyX, scannedEnemyY)*Math.Sin(enemyBearing), scannedEnemyY + DistanceTo(scannedEnemyX, scannedEnemyY)*Math.Cos(enemyBearing), scannedEnemyDirection, scannedEnemySpeed, scannedCurrEnergy);
 
         // Radar lock
@@ -178,26 +182,31 @@ public class Schmelly : Bot
         double xForce = 0;
         double yForce = 0;
 
+        // Ambil data dari enemyData yang tersimpan
         double enemyAbsBearing = NormalizeAbsoluteAngle(radToDeg(Math.Atan2(scannedEnemyX - X, scannedEnemyY - Y)));
         double enemyDistance = getEnemyDistance(enemyData);
         xForce -= (Math.Sin(degToRad(enemyAbsBearing)) / Math.Pow(enemyDistance, 2)) * enemyData.enemyEnergy;
         yForce -= (Math.Cos(degToRad(enemyAbsBearing)) / Math.Pow(enemyDistance, 2)) * enemyData.enemyEnergy;
 
+        // Normalisasi sudut berdasarkan arah vektor gaya
         double angle = NormalizeRelativeAngle(radToDeg(Math.Atan2(xForce, yForce)));
 
+        // Jika sudut berada di dalam range -90 < angle < 90, maka gerak maju
         if (Math.Abs(CalcBearing(angle)) < 90) {
             SetTurnRight(CalcBearing(angle));
             SetForward(100);
-        } else {
+        } else { // Jika tidak, gerak mundur
             SetTurnRight(CalcBearing(angle) > 0 ? CalcBearing(angle) - 180 : CalcBearing(angle) + 180);
             Back(50);
         }
     }
 
+    // Fungsi mengubah derajat menjadi radian
     public double degToRad(double degree) {
         return degree * (Math.PI/180);
     }
 
+    // Fungsi mengubah radian menjadi derajat
     public double radToDeg(double radian) {
         return radian * (180/Math.PI);
     }
