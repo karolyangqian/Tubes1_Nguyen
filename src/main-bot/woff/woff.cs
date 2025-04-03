@@ -8,7 +8,7 @@ using Robocode.TankRoyale.BotApi.Events;
 // ------------------------------------------------------------------
 // woff 🐶
 // ------------------------------------------------------------------
-// Targeting: Play It Forward
+// Targeting: Multiple Choice Play It Forward
 // Movement: Anti-Gravity & Stop and Go
 // ------------------------------------------------------------------
 /*
@@ -48,6 +48,10 @@ v1.1
 - Add updated enemy data onScan
 - Add knob for GRAV_OVERRIDE_TRESHOLD
 
+v1.2
+- Multiple Choice PIF using Monte Carlo Simulation
+- Fix PIF virtual bullet direction
+
 🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕
 
 */
@@ -65,13 +69,16 @@ public class Woff : Bot
     private readonly static double  POINT_COUNT = 36;
     private readonly static double  MIN_DIVISOR = 1e-6;
     private readonly static double  GRAV_OVERRIDE_TRESHOLD = 0.9;
+    private readonly static double  ENEMY_RADIUS = 9;
     private readonly static int     SAG_LIMIT = 3;
-    private readonly static int     NGRAM_ORDER = 4;
+    private readonly static int     NGRAM_ORDER = 3;
     private readonly static int     BULLET_OFFSET_ARENA = 50;
     private readonly static int     ENEMY_GRAVITY_CONSTANT = 300;
     private readonly static int     BULLET_GRAVITY_CONSTANT = 10;
     private readonly static int     LAST_LOC_GRAVITY_CONSTANT = 10;
     private readonly static int     CORNER_CONSTANT = 100;
+    private readonly static int     SIMULATION_COUNT = 64;
+    private readonly static int     ANGLE_BINS = 1080;
 
     // Global variables
     static int targetId;
@@ -153,7 +160,7 @@ public class Woff : Bot
             Bullet bullet = bullets[i];
             bullet.X += bullet.Speed * Math.Cos(bullet.Direction);
             bullet.Y += bullet.Speed * Math.Sin(bullet.Direction);
-            Graphics.FillEllipse(Brushes.Black, (float)bullet.X, (float)bullet.Y, 
+            Graphics.DrawEllipse(new Pen(Color.Black), (float)bullet.X, (float)bullet.Y, 
                         (float)(3 * bullet.Power), (float)(3 * bullet.Power));
             // Console.WriteLine("BulletId: " + i + " X: " + bullet.X + " Y: " + bullet.Y);
 
@@ -173,13 +180,13 @@ public class Woff : Bot
             Bullet bullet = myBullets[i].BulletData;
             bullet.X += bullet.Speed * Math.Cos(bullet.Direction);
             bullet.Y += bullet.Speed * Math.Sin(bullet.Direction);
-            Graphics.FillEllipse(myBullets[i].Type == 0 ? Brushes.Black : Brushes.Red, 
+            Graphics.DrawEllipse(myBullets[i].Type == 0 ? new Pen(Color.Orange) : new Pen(Color.Red), 
                         (float)bullet.X, (float)bullet.Y, 
                         (float)(3 * bullet.Power), (float)(3 * bullet.Power));
             // Console.WriteLine("BulletId: " + i + " X: " + bullet.X + " Y: " + bullet.Y);
 
             EnemyData data = enemyData[myBullets[i].Target];
-            if (distance(data.LastX, data.LastY, bullet.X, bullet.Y) < 18)
+            if (distance(data.LastX, data.LastY, bullet.X, bullet.Y) < ENEMY_RADIUS)
             {
                 data.Type[myBullets[i].Type] += 5;
                 myBullets.RemoveAt(i);
@@ -221,7 +228,7 @@ public class Woff : Bot
                 }
 
                 double grav = CalcGrav(x, y);
-                if (grav < minGrav)
+                if (grav < minGrav || distance(X,Y,destX, destY) < 20)
                 {
                     minGrav = grav;
                     bestX = x;
@@ -230,7 +237,7 @@ public class Woff : Bot
                 // Console.WriteLine("minGrav: " + minGrav + " Grav: " + grav + " X: " + x + " Y: " + y);
 
                 int gravColor = (int) Math.Min(255, Math.Max(0, grav * 255 / 1000));
-                Graphics.FillEllipse(new SolidBrush(Color.FromArgb(
+                Graphics.DrawEllipse(new Pen(Color.FromArgb(
                             gravColor, 255 - gravColor, 0)), 
                             (float) x, (float) y, 10, 10);
             }
@@ -269,7 +276,7 @@ public class Woff : Bot
         data.IsAlive = true;
         double currentSpeed = e.Speed;
         data.LastSpeed = currentSpeed;
-        double currentDirection = toRad(e.Direction);
+        double currentDirection = toRad(NormalizeRelativeAngle(e.Direction));
         double angularVelocity = data.HasPrevious ? 
                                 (currentDirection - data.LastDirection + Math.PI) % (2 * Math.PI) - Math.PI : 0;
         data.LastDirection = currentDirection;
@@ -314,7 +321,7 @@ public class Woff : Bot
                 double distance = (3 + (int)(energyDrop * 1.999999)) * 8;
                 destX = X + Math.Cos(direction) * distance;
                 destY = Y + Math.Sin(direction) * distance;
-                Graphics.DrawRectangle(new Pen(Brushes.Blue), (float)destX, (float)destY, 20, 20);
+                Graphics.DrawRectangle(new Pen(Color.Blue), (float)destX, (float)destY, 20, 20);
                 
                 if (destX < MOVE_WALL_MARGIN || destX > ArenaWidth - MOVE_WALL_MARGIN ||
                     destY < MOVE_WALL_MARGIN || destY > ArenaHeight - MOVE_WALL_MARGIN)
@@ -322,7 +329,7 @@ public class Woff : Bot
                     sag = -sag;
                     hitsag = 0;
                 }
-                double turn = (BearingTo(e.X, e.Y) + (90 - 15 * (targetDistance / 1000)) * sag) * Math.PI / 180;
+                double turn = toRad(BearingTo(e.X, e.Y) + (90 - 15 * (targetDistance / 1000)) * sag);
                 SetTurnLeft(toDeg(Math.Tan(turn)));
                 SetForward(distance * Math.Sign(Math.Cos(turn)));
             }
@@ -341,64 +348,94 @@ public class Woff : Bot
             StateSequence contextKey = new StateSequence(contextStates);
             if (!data.NgramTree.ContainsKey(contextKey))
             {
-                data.NgramTree[contextKey] = new TransitionSegmentTree();
+                data.NgramTree[contextKey] = new FrequencyMap();
             }
             data.NgramTree[contextKey].Add(currentState);
         }
         data.HasPrevious = true;
 
         // Head-on fallback
-        if (data.Type.IndexOf(data.Type.Max()) != 0)
+        int headon = data.Type.IndexOf(data.Type.Max());
+        if (headon != 0)
         {
+            // Console.WriteLine("Type 0 Score: " + data.Type[0] + " Type 1 Score: " + data.Type[1]);
             BulletColor = Color.Red;
             SetTurnGunLeft(GunBearingTo(e.X, e.Y));
-            return;
         }
 
-        // --- Play It Forward ---
-        double predictedX = e.X;
-        double predictedY = e.Y;
-        double predictedDirection = currentDirection;
-        double predictedSpeed = currentSpeed;
-        double simAngularVelocity = angularVelocity;
-        State simCurrentState = currentState;
-        int time = 0;
-
-        List<State> simContext = null;
+        List<State> initialSimContext = null;
         if (data.StateHistory.Count >= NGRAM_ORDER - 1)
         {
-            simContext = new List<State>(data.StateHistory.GetRange(
+            initialSimContext = new List<State>(data.StateHistory.GetRange(
                             data.StateHistory.Count - (NGRAM_ORDER - 1), NGRAM_ORDER - 1));
         }
-
-        while (time * bulletSpeed < DistanceTo(predictedX, predictedY) && time < 100)
+        
+        double[] angleScores = new double[ANGLE_BINS];
+        for (int i = 0; i < SIMULATION_COUNT; i++)
         {
-            if (simContext != null)
+            // --- Play It Forward ---
+            double predictedX = e.X;
+            double predictedY = e.Y;
+            double predictedDirection = currentDirection;
+            double predictedSpeed = currentSpeed;
+            double simAngVel = angularVelocity;
+            List<State> simContext = initialSimContext != null ? 
+                                    new List<State>(initialSimContext) : null;
+
+            double weight = 1.0;
+            int time = 0;
+            while (time * bulletSpeed < DistanceTo(predictedX, predictedY) && time < 100)
             {
-                StateSequence simContextKey = new StateSequence(simContext);
-                if (data.NgramTree.ContainsKey(simContextKey))
+                if (simContext != null)
                 {
-                    State nextState = data.NgramTree[simContextKey].GetMostFrequent();
-                    simAngularVelocity = nextState.AngularVelocity / 1024.0;
-                    predictedSpeed += nextState.Acceleration;
-                    simContext.RemoveAt(0);
-                    simContext.Add(nextState);
+                    StateSequence simContextKey = new StateSequence(simContext);
+                    if (data.NgramTree.ContainsKey(simContextKey))
+                    {
+                        State nextState = data.NgramTree[simContextKey].GetRandomState();
+                        simAngVel = nextState.AngularVelocity / 512.0;
+                        predictedSpeed += nextState.Acceleration;
+                        simContext.RemoveAt(0);
+                        simContext.Add(nextState);
+                    }
+                    else
+                    {
+                        weight *= 0.1;
+                    }
                 }
+                predictedDirection += simAngVel;
+                predictedX += predictedSpeed * Math.Cos(predictedDirection);
+                predictedY += predictedSpeed * Math.Sin(predictedDirection);
+                
+                if (predictedX < 0 || predictedX > ArenaWidth || 
+                    predictedY < 0 || predictedY > ArenaHeight)
+                {
+                    weight *= 0.01;
+                }
+                
+                time++;
             }
-            predictedDirection += simAngularVelocity;
-            predictedX += predictedSpeed * Math.Cos(predictedDirection);
-            predictedY += predictedSpeed * Math.Sin(predictedDirection);
-            time++;
+
+            angleScores[(int)(((GunBearingTo(predictedX, predictedY) * ANGLE_BINS / 360) + ANGLE_BINS) % ANGLE_BINS)] += weight;
+            // Console.WriteLine("Angle: " + (int)(((GunBearingTo(predictedX, predictedY) * ANGLE_BINS / 360) + ANGLE_BINS) % ANGLE_BINS) + " Weight: " + weight);
+
+            Graphics.DrawEllipse(new Pen(Color.Blue), (float)predictedX, (float)predictedY, 20, 20);
         }
 
-        // Bullet's Wall Avoidance
-        predictedX = Math.Max(MOVE_WALL_MARGIN, Math.Min(ArenaWidth - MOVE_WALL_MARGIN, predictedX));
-        predictedY = Math.Max(MOVE_WALL_MARGIN, Math.Min(ArenaHeight - MOVE_WALL_MARGIN, predictedY));
+        double bestAngle = 0;
+        for (int i = 0; i < ANGLE_BINS; i++)
+        {
+            if (angleScores[i] > angleScores[(int)bestAngle])
+            {
+                bestAngle = i;
+            }
+        }
 
-        Graphics.DrawRectangle(new Pen(Brushes.Red), (float)predictedX, (float)predictedY, 20, 20);
-        double bearingFromGun = GunBearingTo(predictedX, predictedY);
-        pifDir = toRad(bearingFromGun);
-        SetTurnGunLeft(bearingFromGun);
+        bestAngle = bestAngle * 360 / ANGLE_BINS;
+        pifDir = toRad(bestAngle + GunDirection);
+        if (headon == 0)
+        {
+            SetTurnGunLeft(NormalizeRelativeAngle(bestAngle));
+        }
 
         // Update enemy position
         foreach (var enemy in enemyData)
@@ -410,6 +447,27 @@ public class Woff : Bot
                 enemyData.LastY += enemyData.LastSpeed * Math.Sin(enemyData.LastDirection);
             }
         }
+
+        // debug
+        // if (TurnNumber % 100 == 0)
+        // {
+        //     foreach (var enemyEntry in enemyData)
+        //     {
+        //         EnemyData enemy = enemyEntry.Value;
+        //         Console.WriteLine("Enemy ID: " + enemyEntry.Key + " => NgramTree entries: " + enemy.NgramTree.Count);
+        //         foreach (var entry in enemy.NgramTree)
+        //         {
+        //             StateSequence key = entry.Key;
+        //             FrequencyMap freqMap = entry.Value;
+        //             string keyString = "";
+        //             foreach (var state in key.States)
+        //             {
+        //                 keyString += $"[Angular: {state.AngularVelocity}, Speed: {state.Speed}, Acc: {state.Acceleration}] ";
+        //             }
+        //             Console.WriteLine("Key: " + keyString + "=> TotalCount: " + freqMap.totalCount);
+        //         }
+        //     }
+        // }
     }
 
     public override void OnBulletFired(BulletFiredEvent e)
@@ -560,13 +618,13 @@ public class Woff : Bot
 
 public struct State
 {
-    public int AngularVelocity; // quantized: radian * 1024
+    public int AngularVelocity; // quantized: radian * 512
     public int Speed;           // -8 -- 8
     public int Acceleration;    // -1 -- 1
 
     public State(double angularVelocity, double speed, double acceleration)
     {
-        AngularVelocity = (int)(angularVelocity * 1024);
+        AngularVelocity = (int)(angularVelocity * 512);
 
         Speed = (int)Math.Round(speed);
         
@@ -630,7 +688,7 @@ public class StateSequence
 public class EnemyData
 {
     public List<State> StateHistory { get; } = new List<State>();
-    public Dictionary<StateSequence, TransitionSegmentTree> NgramTree { get; } = new Dictionary<StateSequence, TransitionSegmentTree>();
+    public Dictionary<StateSequence, FrequencyMap> NgramTree { get; } = new Dictionary<StateSequence, FrequencyMap>();
     public List<int> Type { get; set; } = new List<int> { 5, 0 };
     public bool HasPrevious { get; set; } = false;
     public bool IsAlive { get; set; } = true;
@@ -686,73 +744,36 @@ public class Line2D
     }
 }
 
-public class TransitionSegmentTree
+public class FrequencyMap
 {
-    private List<KeyValuePair<State, int>> data;
-    private int size;
-    private (State state, int frequency)[] tree;
-    private Dictionary<State, int> stateToIndex;
-
-    public TransitionSegmentTree()
-    {
-        data = new List<KeyValuePair<State, int>>();
-        stateToIndex = new Dictionary<State, int>();
-        size = 0;
-        tree = new (State, int)[0];
-    }
+    private Dictionary<State, int> frequencies = new Dictionary<State, int>();
+    public int totalCount = 0;
+    private Random rand = new Random();
 
     public void Add(State s)
     {
-        if (stateToIndex.ContainsKey(s))
+        if (frequencies.TryGetValue(s, out int count))
         {
-            int idx = stateToIndex[s];
-            var kvp = data[idx];
-            data[idx] = new KeyValuePair<State, int>(s, kvp.Value + 1);
+            frequencies[s] = count + 1;
         }
         else
         {
-            stateToIndex[s] = data.Count;
-            data.Add(new KeyValuePair<State, int>(s, 1));
+            frequencies[s] = 1;
         }
-        RebuildTree();
+        totalCount++;
     }
 
-    private void RebuildTree()
+    public State GetRandomState()
     {
-        int n = data.Count;
-        if (n == 0)
+        // Console.WriteLine("Total Count: " + totalCount);
+        int randomIndex = rand.Next(0, totalCount);
+        foreach (var kvp in frequencies)
         {
-            tree = new (State, int)[0];
-            size = 0;
-            return;
-        }
-        size = 1;
-        while (size < n) size *= 2;
-        tree = new (State, int)[2 * size];
-        for (int i = 0; i < size; i++)
-        {
-            if (i < n)
+            if (randomIndex < kvp.Value)
             {
-                tree[size + i] = (data[i].Key, data[i].Value);
+                return kvp.Key;
             }
-            else
-            {
-                tree[size + i] = (default(State), 0);
-            }
-        }
-        for (int i = size - 1; i > 0; i--)
-        {
-            var left = tree[2 * i];
-            var right = tree[2 * i + 1];
-            tree[i] = left.frequency >= right.frequency ? left : right;
-        }
-    }
-
-    public State GetMostFrequent()
-    {
-        if (tree.Length > 0)
-        {
-            return tree[1].state;
+            randomIndex -= kvp.Value;
         }
         return default(State);
     }
