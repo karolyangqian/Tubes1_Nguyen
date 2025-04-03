@@ -38,20 +38,33 @@ using Robocode.TankRoyale.BotApi.Events;
 
 🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕
 
+v1.1
+- Fix Hitting Wall in do Stop and Go 
+- Remove MIN_ENERGY
+- Change Grav Calculation
+- Add Stop and Go color
+- Add Head-on fallback color
+- Add and fix graphical debugging
+- Add updated enemy data onScan
+- Add knob for GRAV_OVERRIDE_TRESHOLD
+
+🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕
+
 */
 // ------------------------------------------------------------------
 public class Woff : Bot
 {
     // Knobs
-    private readonly static double  ENEMY_ENERGY_THRESHOLD = 1.3;
+    private readonly static double  ENEMY_ENERGY_THRESHOLD = 3.5;
     private readonly static double  MOVE_WALL_MARGIN = 25;
     private readonly static double  GUN_FACTOR = 5;
-    private readonly static double  MIN_ENERGY = 12;
     private readonly static double  RADAR_LOCK = 0.7;
-    private readonly static double  MIN_RADIUS = 200;
-    private readonly static double  MAX_RADIUS = 300;
+    private readonly static double  MIN_RADIUS = 100;
+    private readonly static double  DELTA_RADIUS = 100;
+    private readonly static double  ITERATE_RADIUS = 3;
     private readonly static double  POINT_COUNT = 36;
     private readonly static double  MIN_DIVISOR = 1e-6;
+    private readonly static double  GRAV_OVERRIDE_TRESHOLD = 0.9;
     private readonly static int     SAG_LIMIT = 3;
     private readonly static int     NGRAM_ORDER = 4;
     private readonly static int     BULLET_OFFSET_ARENA = 50;
@@ -64,6 +77,7 @@ public class Woff : Bot
     static int targetId;
     static double targetDistance;
     static double enemyDistance;
+    static double pifDir;
 
     static double destX;
     static double destY;
@@ -104,22 +118,43 @@ public class Woff : Bot
         myBullets = new List<MyBullet>();
         dontsag = false;
         hitsag = 0;
+        pifDir = 0;
     }
 
     public override void OnTick(TickEvent e)
     {
-        TurretColor = Color.FromArgb(rand.Next(256), rand.Next(256), rand.Next(256));
-        ScanColor = Color.FromArgb(105, 105, rand.Next(256));
-        BodyColor = ScanColor;
-        BulletColor = ScanColor;
+        // sag color
+        if (EnemyCount == 1 && !dontsag)
+        {
+            if (DistanceRemaining == 0)
+            {
+                TurretColor = Color.Black;
+                ScanColor = Color.Black;
+                BodyColor = Color.Black;
+                BulletColor = Color.Black;
+                RadarColor = Color.White;
+                TracksColor = Color.White;
+                GunColor = Color.White;
+            }
+            else
+            {
+                TurretColor = Color.White;
+                ScanColor = Color.White;
+                BodyColor = Color.White;
+                BulletColor = Color.White;
+                RadarColor = Color.Black;
+                TracksColor = Color.Black;
+                GunColor = Color.Black;
+            }
+        }
 
-        var g = Graphics;
         for (int i = bullets.Count - 1; i >= 0; i--)
         {
             Bullet bullet = bullets[i];
             bullet.X += bullet.Speed * Math.Cos(bullet.Direction);
             bullet.Y += bullet.Speed * Math.Sin(bullet.Direction);
-            g.FillRectangle(Brushes.Black, (float)bullet.X, (float)bullet.Y, (float)(3 * bullet.Power), (float)(3 * bullet.Power));
+            Graphics.FillEllipse(Brushes.Black, (float)bullet.X, (float)bullet.Y, 
+                        (float)(3 * bullet.Power), (float)(3 * bullet.Power));
             // Console.WriteLine("BulletId: " + i + " X: " + bullet.X + " Y: " + bullet.Y);
 
             if (bullet.X < 0 - BULLET_OFFSET_ARENA || bullet.X > ArenaWidth + BULLET_OFFSET_ARENA || 
@@ -138,7 +173,9 @@ public class Woff : Bot
             Bullet bullet = myBullets[i].BulletData;
             bullet.X += bullet.Speed * Math.Cos(bullet.Direction);
             bullet.Y += bullet.Speed * Math.Sin(bullet.Direction);
-            g.FillRectangle(myBullets[i].Type == 0 ? Brushes.Black : Brushes.Red, (float)bullet.X, (float)bullet.Y, (float)(3 * bullet.Power), (float)(3 * bullet.Power));
+            Graphics.FillEllipse(myBullets[i].Type == 0 ? Brushes.Black : Brushes.Red, 
+                        (float)bullet.X, (float)bullet.Y, 
+                        (float)(3 * bullet.Power), (float)(3 * bullet.Power));
             // Console.WriteLine("BulletId: " + i + " X: " + bullet.X + " Y: " + bullet.Y);
 
             EnemyData data = enemyData[myBullets[i].Target];
@@ -171,8 +208,8 @@ public class Woff : Bot
         {
             double theta = (2 * Math.PI / POINT_COUNT) * i;
             
-            for (int u = 0; u <= 1; u++) {
-                double r = Math.Sqrt(u * (MAX_RADIUS * MAX_RADIUS - MIN_RADIUS * MIN_RADIUS) + MIN_RADIUS * MIN_RADIUS);
+            for (int u = 0; u < ITERATE_RADIUS; u++) {
+                double r = Math.Sqrt(Math.Pow(u * DELTA_RADIUS, 2) + Math.Pow(MIN_RADIUS, 2));
                 
                 double x = X + r * Math.Cos(theta);
                 double y = Y + r * Math.Sin(theta);
@@ -190,18 +227,33 @@ public class Woff : Bot
                     bestX = x;
                     bestY = y;
                 }
+                // Console.WriteLine("minGrav: " + minGrav + " Grav: " + grav + " X: " + x + " Y: " + y);
+
+                int gravColor = (int) Math.Min(255, Math.Max(0, grav * 255 / 1000));
+                Graphics.FillEllipse(new SolidBrush(Color.FromArgb(
+                            gravColor, 255 - gravColor, 0)), 
+                            (float) x, (float) y, 10, 10);
             }
         }
 
-        if (minGrav < CalcGrav(destX, destY) * 0.9)
+        if (minGrav < CalcGrav(destX, destY) * GRAV_OVERRIDE_TRESHOLD)
         {
             destX = bestX;
             destY = bestY;
         }
 
-        double turn = BearingTo(destX, destY) * Math.PI / 180;
-        SetTurnLeft(180 / Math.PI * Math.Tan(turn));
+        double turn = toRad(BearingTo(destX, destY));
+        SetTurnLeft(toDeg(Math.Tan(turn)));
         SetForward(DistanceTo(destX, destY) * Math.Cos(turn));
+
+        // Anti-Gravity color
+        TurretColor = Color.FromArgb(rand.Next(256), rand.Next(256), rand.Next(256));
+        ScanColor = Color.FromArgb(105, 105, rand.Next(256));
+        BodyColor = ScanColor;
+        BulletColor = ScanColor;
+        RadarColor = Color.White;
+        TracksColor = Color.White;
+        GunColor = Color.White;
     }
 
     public override void OnScannedBot(ScannedBotEvent e)
@@ -215,6 +267,12 @@ public class Woff : Bot
         data.LastX = e.X;
         data.LastY = e.Y;
         data.IsAlive = true;
+        double currentSpeed = e.Speed;
+        data.LastSpeed = currentSpeed;
+        double currentDirection = toRad(e.Direction);
+        double angularVelocity = data.HasPrevious ? 
+                                (currentDirection - data.LastDirection + Math.PI) % (2 * Math.PI) - Math.PI : 0;
+        data.LastDirection = currentDirection;
 
         // Lock closest target
         double scannedDistance = enemyDistance = DistanceTo(e.X, e.Y);
@@ -237,43 +295,43 @@ public class Woff : Bot
 
         // Fire control
         double firePower = Energy / DistanceTo(e.X, e.Y) * GUN_FACTOR;
-        if (GunTurnRemaining == 0 && (Energy > MIN_ENERGY || DistanceTo(e.X, e.Y) < 50))
+        if (GunTurnRemaining == 0)
         {
             SetFire(firePower);
         }
 
         double bulletSpeed = CalcBulletSpeed(firePower);
-        double currentDirection = e.Direction * Math.PI / 180.0;
 
         // Input Virtual Bullets
         double energyDrop = data.LastEnergy - e.Energy;
-        if (0.11 < energyDrop && energyDrop <= 3)
+        if (0.1 <= energyDrop && energyDrop <= 3)
         {
-            AddVirtualBullet(e.X, e.Y, CalcBulletSpeed(energyDrop), energyDrop, (180 + DirectionTo(e.X, e.Y)) * Math.PI / 180);
+            AddVirtualBullet(e.X, e.Y, CalcBulletSpeed(energyDrop), energyDrop, (180 + DirectionTo(e.X, e.Y)));
             AddLinearVirtualBullet(e.X, e.Y, CalcBulletSpeed(energyDrop), energyDrop);
             if (!dontsag && EnemyCount == 1 && DistanceRemaining == 0)
             {
+                double direction = toRad(DirectionTo(e.X, e.Y) + (90 - 15 * (targetDistance / 1000)) * sag);
+                double distance = (3 + (int)(energyDrop * 1.999999)) * 8;
+                destX = X + Math.Cos(direction) * distance;
+                destY = Y + Math.Sin(direction) * distance;
+                Graphics.DrawRectangle(new Pen(Brushes.Blue), (float)destX, (float)destY, 20, 20);
                 
-                if (X < MOVE_WALL_MARGIN || X > ArenaWidth - MOVE_WALL_MARGIN ||
-                    Y < MOVE_WALL_MARGIN || Y > ArenaHeight - MOVE_WALL_MARGIN)
+                if (destX < MOVE_WALL_MARGIN || destX > ArenaWidth - MOVE_WALL_MARGIN ||
+                    destY < MOVE_WALL_MARGIN || destY > ArenaHeight - MOVE_WALL_MARGIN)
                 {
                     sag = -sag;
                     hitsag = 0;
                 }
                 double turn = (BearingTo(e.X, e.Y) + (90 - 15 * (targetDistance / 1000)) * sag) * Math.PI / 180;
-                SetTurnLeft(Math.Tan(turn) * 180 / Math.PI);
-                SetForward((3 + (int)(energyDrop * 1.999999)) * 8 * Math.Sign(Math.Cos(turn)));
+                SetTurnLeft(toDeg(Math.Tan(turn)));
+                SetForward(distance * Math.Sign(Math.Cos(turn)));
             }
             // Console.WriteLine("Bullet Speed: " + CalcBulletSpeed(energyDrop) + " Power: " + energyDrop);
         }
         data.LastEnergy = e.Energy;
 
         // Input State
-        double currentSpeed = e.Speed;
         double acceleration = data.HasPrevious ? currentSpeed - data.LastSpeed : 0;
-        data.LastSpeed = currentSpeed;
-        double angularVelocity = data.HasPrevious ? (currentDirection - data.LastDirection + Math.PI) % (2 * Math.PI) - Math.PI : 0;
-        data.LastDirection = currentDirection;
         State currentState = new State(angularVelocity, currentSpeed, acceleration);
         data.StateHistory.Add(currentState);
 
@@ -292,6 +350,7 @@ public class Woff : Bot
         // Head-on fallback
         if (data.Type.IndexOf(data.Type.Max()) != 0)
         {
+            BulletColor = Color.Red;
             SetTurnGunLeft(GunBearingTo(e.X, e.Y));
             return;
         }
@@ -308,7 +367,8 @@ public class Woff : Bot
         List<State> simContext = null;
         if (data.StateHistory.Count >= NGRAM_ORDER - 1)
         {
-            simContext = new List<State>(data.StateHistory.GetRange(data.StateHistory.Count - (NGRAM_ORDER - 1), NGRAM_ORDER - 1));
+            simContext = new List<State>(data.StateHistory.GetRange(
+                            data.StateHistory.Count - (NGRAM_ORDER - 1), NGRAM_ORDER - 1));
         }
 
         while (time * bulletSpeed < DistanceTo(predictedX, predictedY) && time < 100)
@@ -335,18 +395,29 @@ public class Woff : Bot
         predictedX = Math.Max(MOVE_WALL_MARGIN, Math.Min(ArenaWidth - MOVE_WALL_MARGIN, predictedX));
         predictedY = Math.Max(MOVE_WALL_MARGIN, Math.Min(ArenaHeight - MOVE_WALL_MARGIN, predictedY));
 
-        var g = Graphics;
-        Pen redPen = new Pen(Brushes.Red);
-        g.DrawRectangle(redPen, (float)predictedX, (float)predictedY, 20, 20);
+        Graphics.DrawRectangle(new Pen(Brushes.Red), (float)predictedX, (float)predictedY, 20, 20);
         double bearingFromGun = GunBearingTo(predictedX, predictedY);
+        pifDir = toRad(bearingFromGun);
         SetTurnGunLeft(bearingFromGun);
+
+        // Update enemy position
+        foreach (var enemy in enemyData)
+        {
+            if (enemy.Key != targetId && enemy.Value.IsAlive)
+            {
+                EnemyData enemyData = enemy.Value;
+                enemyData.LastX += enemyData.LastSpeed * Math.Cos(enemyData.LastDirection);
+                enemyData.LastY += enemyData.LastSpeed * Math.Sin(enemyData.LastDirection);
+            }
+        }
     }
 
     public override void OnBulletFired(BulletFiredEvent e)
     {
-        AddMyVirtualBullet(X, Y, e.Bullet.Speed, e.Bullet.Power, GunDirection * Math.PI / 180, targetId, 0);
+        AddMyVirtualBullet(X, Y, e.Bullet.Speed, e.Bullet.Power, pifDir, targetId, 0);
         EnemyData data = enemyData[targetId];
-        AddMyVirtualBullet(X, Y, e.Bullet.Speed, e.Bullet.Power, DirectionTo(data.LastX, data.LastY) * Math.PI / 180, targetId, 1);
+        AddMyVirtualBullet(X, Y, e.Bullet.Speed, e.Bullet.Power, 
+                        toRad(DirectionTo(data.LastX, data.LastY)), targetId, 1);
     }
 
     public override void OnHitByBullet(HitByBulletEvent e)
@@ -405,7 +476,7 @@ public class Woff : Bot
         grav += CORNER_CONSTANT / distanceSq(candidateX, candidateY, ArenaWidth, 0);
         grav += CORNER_CONSTANT / distanceSq(candidateX, candidateY, ArenaWidth, ArenaHeight);
 
-        return grav;
+        return grav * 1000;
     }
     
     private void AddVirtualBullet(double x, double y, double speed, double power, double direction)
@@ -425,7 +496,7 @@ public class Woff : Bot
     {
         // Linear-nya karol
         double vb = CalcBulletSpeed(power);
-        double myDir = Direction * Math.PI / 180;
+        double myDir = toRad(Direction);
         double vxt = Speed * Math.Cos(myDir);
         double vyt = Speed * Math.Sin(myDir);
         double xt = X;
@@ -466,14 +537,24 @@ public class Woff : Bot
         myBullets.Add(myBullet);
     }
     
-    private double distanceSq(double x1, double y1, double x2, double y2)
+    public double distanceSq(double x1, double y1, double x2, double y2)
     {
         return Math.Pow(x1 - x2, 2) + Math.Pow(y1 - y2, 2);
     }
 
-    private double distance(double x1, double y1, double x2, double y2)
+    public double distance(double x1, double y1, double x2, double y2)
     {
         return Math.Sqrt(Math.Pow(x1 - x2, 2) + Math.Pow(y1 - y2, 2));
+    }
+
+    public double toRad(double degree)
+    {
+        return degree * Math.PI / 180;
+    }
+
+    public double toDeg(double radian)
+    {
+        return radian * 180 / Math.PI;
     }
 }
 
