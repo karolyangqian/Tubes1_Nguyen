@@ -505,7 +505,7 @@ public class Woff : Bot
                     // Bin Smoothing
                     if (weight > 1e-9)
                     {
-                        weight *= (ArenaDiagonal - distance(predictedX, predictedY, X, Y)) / ArenaDiagonal;
+                        weight *= (ArenaDiagonal - distance(enemyData.LastX, enemyData.LastY, X, Y)) / ArenaDiagonal;
                         
                         double finalPredictedX = predictedX;
                         double finalPredictedY = predictedY;
