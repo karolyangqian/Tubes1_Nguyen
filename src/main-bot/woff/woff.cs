@@ -61,6 +61,7 @@ v1.4
 v1.5
 - Add SAG corner avoidance
 - Add not-target enemy data
+- Add Bin Smoothing
 
 🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕
 
@@ -90,10 +91,11 @@ public class Woff : Bot
     private readonly static int     BULLET_GRAVITY_CONSTANT = 10;
     private readonly static int     LAST_LOC_GRAVITY_CONSTANT = 10;
     private readonly static int     CORNER_CONSTANT = 100;
-    private readonly static int     SIMULATION_COUNT = 64;
+    private readonly static int     SIMULATION_COUNT = 32;
     private readonly static int     ANGLE_BINS = 1080;
 
     // Global variables
+    static double ArenaDiagonal;
     static int targetId;
     static double targetDistance;
     static double enemyDistance;
@@ -127,6 +129,7 @@ public class Woff : Bot
         TracksColor = Color.White;
         GunColor = Color.White;
 
+        ArenaDiagonal = distance(0, 0, ArenaWidth, ArenaHeight);
         SetTurnRadarRight(double.PositiveInfinity);
         AdjustGunForBodyTurn = true;
         AdjustRadarForGunTurn = true;
@@ -362,7 +365,7 @@ public class Woff : Bot
             AddLinearVirtualBullet(e.X, e.Y, CalcBulletSpeed(energyDrop), energyDrop);
             if (!dontsag && EnemyCount == 1 && DistanceRemaining == 0)
             {
-                double direction = toRad(DirectionTo(e.X, e.Y) + (90 - 15 * (targetDistance / 1000)) * sag);
+                double direction = toRad(DirectionTo(e.X, e.Y) + (90 - 15 * (targetDistance / ArenaDiagonal)) * sag);
                 double distance = (3 + (int)(energyDrop * 1.999999)) * 8;
                 destX = X + Math.Cos(direction) * distance;
                 destY = Y + Math.Sin(direction) * distance;
@@ -374,7 +377,7 @@ public class Woff : Bot
                     sag = -sag;
                     hitsag = 0;
                 }
-                double turn = toRad(BearingTo(e.X, e.Y) + (90 - 15 * (targetDistance / 1000)) * sag);
+                double turn = toRad(BearingTo(e.X, e.Y) + (90 - 15 * (targetDistance / ArenaDiagonal)) * sag);
                 SetTurnLeft(toDeg(Math.Tan(turn)));
                 SetForward(distance * Math.Sign(Math.Cos(turn)));
             }
@@ -449,13 +452,11 @@ public class Woff : Bot
 
                             if (totalAggregatedCount > 0)
                             {
-                                int randomIndex = rand.Next(0, totalAggregatedCount);
-                                int cumulativeCount = 0;
-
+                                int cumulativeCount = rand.Next(0, totalAggregatedCount);
                                 foreach (var kvp in aggregatedFrequencies)
                                 {
-                                    cumulativeCount += kvp.Value; 
-                                    if (randomIndex < cumulativeCount)
+                                    cumulativeCount -= kvp.Value; 
+                                    if (cumulativeCount < 0)
                                     {
                                         predictedNextState = kvp.Key;
                                         break;
@@ -466,7 +467,6 @@ public class Woff : Bot
                                     predictedNextState = aggregatedFrequencies.OrderByDescending(kvp => kvp.Value).First().Key;
                                 }
                             }
-
                         }
 
 
@@ -502,8 +502,32 @@ public class Woff : Bot
                         time++;
                     }
 
-                    angleScores[(int)(((GunBearingTo(predictedX, predictedY) * ANGLE_BINS / 360) + ANGLE_BINS) % ANGLE_BINS)] += weight;
-                    // Console.WriteLine("Angle: " + (int)(((GunBearingTo(predictedX, predictedY) * ANGLE_BINS / 360) + ANGLE_BINS) % ANGLE_BINS) + " Weight: " + weight);
+                    // Bin Smoothing
+                    if (weight > 1e-9)
+                    {
+                        weight *= (ArenaDiagonal - distance(predictedX, predictedY, X, Y)) / ArenaDiagonal;
+                        
+                        double finalPredictedX = predictedX;
+                        double finalPredictedY = predictedY;
+
+                        double distanceToEnemy = DistanceTo(finalPredictedX, finalPredictedY);
+
+                        double sinAlpha = Math.Min(ENEMY_RADIUS / distanceToEnemy, 1.0 - 1e-9);
+                        double halfAngleRad = Math.Asin(sinAlpha);
+                        double fullAngleDeg = toDeg(2 * halfAngleRad);
+
+                        double centerBearing = GunBearingTo(finalPredictedX, finalPredictedY);
+                        int centerBinIndex = (int)(((centerBearing * ANGLE_BINS / 360.0) + ANGLE_BINS + 0.5)) % ANGLE_BINS;
+
+                        double binWidthDeg = 360.0 / ANGLE_BINS;
+                        int halfBinSpread = (int)Math.Ceiling(fullAngleDeg / binWidthDeg / 2.0);
+
+                        for (int binOffset = -halfBinSpread; binOffset <= halfBinSpread; binOffset++)
+                        {
+                            int targetBinIndex = (centerBinIndex + binOffset + ANGLE_BINS) % ANGLE_BINS;
+                            angleScores[targetBinIndex] += weight;
+                        }
+                    }
 
                     Graphics.DrawEllipse(new Pen(Color.Blue), (float)predictedX, (float)predictedY, 20, 20);
                 }
@@ -602,10 +626,10 @@ public class Woff : Bot
         foreach (Bullet bullet in bullets)
         {
             Line2D bulletLine = new Line2D(
-                bullet.X - Math.Cos(bullet.Direction) * 10000, 
-                bullet.Y - Math.Sin(bullet.Direction) * 10000, 
-                bullet.X + Math.Cos(bullet.Direction) * 10000, 
-                bullet.Y + Math.Sin(bullet.Direction) * 10000
+                bullet.X - Math.Cos(bullet.Direction) * ArenaDiagonal, 
+                bullet.Y - Math.Sin(bullet.Direction) * ArenaDiagonal, 
+                bullet.X + Math.Cos(bullet.Direction) * ArenaDiagonal, 
+                bullet.Y + Math.Sin(bullet.Direction) * ArenaDiagonal
             );
             
             double d = bulletLine.DistanceToPoint(candidateX, candidateY);
