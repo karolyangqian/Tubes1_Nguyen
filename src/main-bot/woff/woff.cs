@@ -55,12 +55,6 @@ v1.2
 v1.3
 - Multi-order N-gram
 
-v1.4
-- Add Corner Avoidance (SAG)
-- Add SAG energy fallback
-- Fix Enemy Data when restart 
-- Avoid irrelevant initial context
-
 🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕
 
 */
@@ -79,8 +73,6 @@ public class Woff : Bot
     private readonly static double  MIN_DIVISOR = 1e-6;
     private readonly static double  GRAV_OVERRIDE_TRESHOLD = 0.9;
     private readonly static double  ENEMY_RADIUS = 9;
-    private readonly static double  SAG_ENEMY_DISTANCE_THRESHOLD = 250;
-    private readonly static double  SAG_CORNER_DISTANCE_THRESHOLD = 80;
     private readonly static int     SAG_LIMIT = 3;
     private readonly static int     NGRAM_ORDER = 10;
     private readonly static int     BULLET_OFFSET_ARENA = 50;
@@ -120,14 +112,6 @@ public class Woff : Bot
 
     public override void Run()
     {
-        if (RoundNumber == 1)
-        {
-            for (int i = 0; i < EnemyCount; i++)
-            {
-                enemyData[i] = new EnemyData();
-            }
-        }
-        
         Console.WriteLine("Woff woff woff 🐶! |---| round: " + RoundNumber);
         RadarColor = Color.White;
         TracksColor = Color.White;
@@ -223,14 +207,7 @@ public class Woff : Bot
         }
 
         if (hitsag > SAG_LIMIT) dontsag = true;
-        if (!dontsag && EnemyCount == 1 && 
-            enemyData[targetId].LastEnergy > ENEMY_ENERGY_THRESHOLD &&
-            targetDistance > SAG_ENEMY_DISTANCE_THRESHOLD && 
-            distance(X, Y, 0, 0) > SAG_CORNER_DISTANCE_THRESHOLD &&
-            distance(X, Y, 0, ArenaHeight) > SAG_CORNER_DISTANCE_THRESHOLD &&
-            distance(X, Y, ArenaWidth, 0) > SAG_CORNER_DISTANCE_THRESHOLD &&
-            distance(X, Y, ArenaWidth, ArenaHeight) > SAG_CORNER_DISTANCE_THRESHOLD 
-        ) return;
+        if (!dontsag && EnemyCount == 1 && targetDistance > 250) return;
         
         // Anti-Gravity
         double bestX = X;
@@ -303,17 +280,9 @@ public class Woff : Bot
         double currentSpeed = e.Speed;
         data.LastSpeed = currentSpeed;
         double currentDirection = toRad(NormalizeRelativeAngle(e.Direction));
+        double angularVelocity = data.HasPrevious ? 
+                                (currentDirection - data.LastDirection + Math.PI) % (2 * Math.PI) - Math.PI : 0;
         data.LastDirection = currentDirection;
-        bool isNewScanSession = (data.LastScanTurnNumber == -1 || TurnNumber - data.LastScanTurnNumber > 1);
-        data.LastScanTurnNumber = TurnNumber;
-
-        double angularVelocity = 0;
-        double acceleration = 0;
-        if (!isNewScanSession && data.StateHistory.Count > 0)
-        {
-            angularVelocity = (currentDirection - data.LastDirection + Math.PI) % (2 * Math.PI) - Math.PI;
-            acceleration = currentSpeed - data.LastSpeed;
-        }
 
         // Lock closest target
         double scannedDistance = enemyDistance = DistanceTo(e.X, e.Y);
@@ -372,6 +341,7 @@ public class Woff : Bot
         data.LastEnergy = e.Energy;
 
         // Input State
+        double acceleration = data.HasPrevious ? currentSpeed - data.LastSpeed : 0;
         State currentState = new State(angularVelocity, currentSpeed, acceleration);
         data.StateHistory.Add(currentState);
 
@@ -403,7 +373,7 @@ public class Woff : Bot
         }
 
         List<State> initialSimContext = null;
-        if (!isNewScanSession && data.StateHistory.Count >= NGRAM_ORDER - 1)
+        if (data.StateHistory.Count >= NGRAM_ORDER - 1)
         {
             initialSimContext = new List<State>(data.StateHistory.GetRange(
                             data.StateHistory.Count - (NGRAM_ORDER - 1), NGRAM_ORDER - 1));
@@ -790,7 +760,6 @@ public class EnemyData
     public double LastY { get; set; }
     public double LastEnergy { get; set; }
     public double LastSpeed { get; set; }
-    public long LastScanTurnNumber { get; set; } = -1;
 }
 
 public struct Bullet
