@@ -55,6 +55,9 @@ v1.2
 v1.3
 - Multi-order N-gram
 
+v1.4
+- Melee Gun
+
 🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕
 
 */
@@ -74,7 +77,8 @@ public class Woff : Bot
     private readonly static double  GRAV_OVERRIDE_TRESHOLD = 0.9;
     private readonly static double  ENEMY_RADIUS = 9;
     private readonly static int     SAG_LIMIT = 3;
-    private readonly static int     NGRAM_ORDER = 10;
+    private readonly static int     NGRAM_ORDER = 5;
+    private readonly static int     MIN_NGRAM_ORDER = 2;
     private readonly static int     BULLET_OFFSET_ARENA = 50;
     private readonly static int     ENEMY_GRAVITY_CONSTANT = 300;
     private readonly static int     BULLET_GRAVITY_CONSTANT = 10;
@@ -282,6 +286,7 @@ public class Woff : Bot
         double currentDirection = toRad(NormalizeRelativeAngle(e.Direction));
         double angularVelocity = data.HasPrevious ? 
                                 (currentDirection - data.LastDirection + Math.PI) % (2 * Math.PI) - Math.PI : 0;
+        data.LastAngularVelocity = angularVelocity;
         data.LastDirection = currentDirection;
 
         // Lock closest target
@@ -342,6 +347,7 @@ public class Woff : Bot
 
         // Input State
         double acceleration = data.HasPrevious ? currentSpeed - data.LastSpeed : 0;
+        data.LastAcceleration = acceleration;
         State currentState = new State(angularVelocity, currentSpeed, acceleration);
         data.StateHistory.Add(currentState);
 
@@ -372,116 +378,124 @@ public class Woff : Bot
             SetTurnGunLeft(GunBearingTo(e.X, e.Y));
         }
 
-        List<State> initialSimContext = null;
-        if (data.StateHistory.Count >= NGRAM_ORDER - 1)
-        {
-            initialSimContext = new List<State>(data.StateHistory.GetRange(
-                            data.StateHistory.Count - (NGRAM_ORDER - 1), NGRAM_ORDER - 1));
-        }
-        
         double[] angleScores = new double[ANGLE_BINS];
-        for (int i = 0; i < SIMULATION_COUNT; i++)
+        foreach (var enemy in enemyData)
         {
-            // --- Play It Forward ---
-            double predictedX = e.X;
-            double predictedY = e.Y;
-            double predictedDirection = currentDirection;
-            double predictedSpeed = currentSpeed;
-            double simAngVel = angularVelocity;
-            List<State> simContext = initialSimContext != null ? 
-                                    new List<State>(initialSimContext) : null;
-
-            double weight = 1.0;
-            int time = 0;
-            while (time * bulletSpeed < DistanceTo(predictedX, predictedY) && time < 100)
+            if (enemy.Value.IsAlive)
             {
-                State? predictedNextState = null;
-                double weightAdjustment = 1.0;
+                EnemyData enemyData = enemy.Value;
 
-                if (simContext != null && simContext.Count > 0)
+                List<State> initialSimContext = null;
+                if (enemyData.StateHistory.Count >= MIN_NGRAM_ORDER - 1)
                 {
-                    Dictionary<State, int> aggregatedFrequencies = new Dictionary<State, int>();
-                    int totalAggregatedCount = 0;
+                    initialSimContext = new List<State>(enemyData.StateHistory.GetRange(
+                                    enemyData.StateHistory.Count - (MIN_NGRAM_ORDER - 1), MIN_NGRAM_ORDER - 1));
+                }
 
-                    for (int len = Math.Min(NGRAM_ORDER - 1, simContext.Count); len >= 1; len--)
+                for (int i = 0; i < SIMULATION_COUNT; i++)
+                {
+                    // --- Play It Forward ---
+                    double predictedX = enemyData.LastX;
+                    double predictedY = enemyData.LastY;
+                    double predictedDirection = enemyData.LastDirection;
+                    double predictedSpeed = enemyData.LastSpeed;
+                    double simAngVel = enemyData.LastAngularVelocity;
+                    List<State> simContext = initialSimContext != null ? 
+                                            new List<State>(initialSimContext) : null;
+
+                    double weight = 1.0;
+                    int time = 0;
+                    while (time * bulletSpeed < DistanceTo(predictedX, predictedY) && time < 100)
                     {
-                        List<State> currentSimContextPortion = simContext.GetRange(simContext.Count - len, len);
-                        StateSequence simContextKey = new StateSequence(currentSimContextPortion);
+                        State? predictedNextState = null;
+                        double weightAdjustment = 1.0;
 
-                        if (data.NgramTree.TryGetValue(simContextKey, out FrequencyMap freqMap))
+                        if (simContext != null && simContext.Count > 0)
                         {
-                            foreach (var kvp in freqMap.GetFrequencies())
+                            Dictionary<State, int> aggregatedFrequencies = new Dictionary<State, int>();
+                            int totalAggregatedCount = 0;
+
+                            for (int len = Math.Min(NGRAM_ORDER - 1, simContext.Count); len >= 1; len--)
                             {
-                                State state = kvp.Key;
-                                int count = kvp.Value;
+                                List<State> currentSimContextPortion = simContext.GetRange(simContext.Count - len, len);
+                                StateSequence simContextKey = new StateSequence(currentSimContextPortion);
 
-                                aggregatedFrequencies.TryGetValue(state, out int currentAggregatedCount);
-                                aggregatedFrequencies[state] = currentAggregatedCount + count;
+                                if (enemyData.NgramTree.TryGetValue(simContextKey, out FrequencyMap freqMap))
+                                {
+                                    foreach (var kvp in freqMap.GetFrequencies())
+                                    {
+                                        State state = kvp.Key;
+                                        int count = kvp.Value;
 
-                                totalAggregatedCount += count;
+                                        aggregatedFrequencies.TryGetValue(state, out int currentAggregatedCount);
+                                        aggregatedFrequencies[state] = currentAggregatedCount + count;
+
+                                        totalAggregatedCount += count;
+                                    }
+                                }
+                            }
+
+                            if (totalAggregatedCount > 0)
+                            {
+                                int randomIndex = rand.Next(0, totalAggregatedCount);
+                                int cumulativeCount = 0;
+
+                                foreach (var kvp in aggregatedFrequencies)
+                                {
+                                    cumulativeCount += kvp.Value; 
+                                    if (randomIndex < cumulativeCount)
+                                    {
+                                        predictedNextState = kvp.Key;
+                                        break;
+                                    }
+                                }
+
+                                if (!predictedNextState.HasValue && aggregatedFrequencies.Count > 0) {
+                                    predictedNextState = aggregatedFrequencies.OrderByDescending(kvp => kvp.Value).First().Key;
+                                }
+                            }
+
+                        }
+
+
+                        if (predictedNextState.HasValue)
+                        {
+                            State nextState = predictedNextState.Value;
+                            simAngVel = nextState.AngularVelocity / 512.0;
+                            predictedSpeed = Math.Clamp(predictedSpeed + nextState.Acceleration, -MaxSpeed, MaxSpeed);
+
+                            if (simContext != null) {
+                                if (simContext.Count >= NGRAM_ORDER - 1 && NGRAM_ORDER > 1) {
+                                    simContext.RemoveAt(0);
+                                }
+                                simContext.Add(nextState);
                             }
                         }
-                    }
-
-                    if (totalAggregatedCount > 0)
-                    {
-                        int randomIndex = rand.Next(0, totalAggregatedCount);
-                        int cumulativeCount = 0;
-
-                        foreach (var kvp in aggregatedFrequencies)
+                        else
                         {
-                            cumulativeCount += kvp.Value; 
-                            if (randomIndex < cumulativeCount)
-                            {
-                                predictedNextState = kvp.Key;
-                                break;
-                            }
+                            weightAdjustment = 0.1;
                         }
 
-                        if (!predictedNextState.HasValue && aggregatedFrequencies.Count > 0) {
-                            predictedNextState = aggregatedFrequencies.OrderByDescending(kvp => kvp.Value).First().Key;
+                        weight *= weightAdjustment;
+
+                        predictedDirection += simAngVel;
+                        predictedX += predictedSpeed * Math.Cos(predictedDirection);
+                        predictedY += predictedSpeed * Math.Sin(predictedDirection);
+
+                        if (predictedX < 0 || predictedX > ArenaWidth ||
+                            predictedY < 0 || predictedY > ArenaHeight)
+                        {
+                            weight *= 0.01;
                         }
+                        time++;
                     }
 
+                    angleScores[(int)(((GunBearingTo(predictedX, predictedY) * ANGLE_BINS / 360) + ANGLE_BINS) % ANGLE_BINS)] += weight;
+                    // Console.WriteLine("Angle: " + (int)(((GunBearingTo(predictedX, predictedY) * ANGLE_BINS / 360) + ANGLE_BINS) % ANGLE_BINS) + " Weight: " + weight);
+
+                    Graphics.DrawEllipse(new Pen(Color.Blue), (float)predictedX, (float)predictedY, 20, 20);
                 }
-
-
-                if (predictedNextState.HasValue)
-                {
-                    State nextState = predictedNextState.Value;
-                    simAngVel = nextState.AngularVelocity / 512.0;
-                    predictedSpeed = Math.Clamp(predictedSpeed + nextState.Acceleration, -MaxSpeed, MaxSpeed);
-
-                    if (simContext != null) {
-                        if (simContext.Count >= NGRAM_ORDER - 1 && NGRAM_ORDER > 1) {
-                            simContext.RemoveAt(0);
-                        }
-                        simContext.Add(nextState);
-                    }
-                }
-                else
-                {
-                    weightAdjustment = 0.1;
-                }
-
-                weight *= weightAdjustment;
-
-                predictedDirection += simAngVel;
-                predictedX += predictedSpeed * Math.Cos(predictedDirection);
-                predictedY += predictedSpeed * Math.Sin(predictedDirection);
-
-                if (predictedX < 0 || predictedX > ArenaWidth ||
-                    predictedY < 0 || predictedY > ArenaHeight)
-                {
-                    weight *= 0.01;
-                }
-                time++;
             }
-
-            angleScores[(int)(((GunBearingTo(predictedX, predictedY) * ANGLE_BINS / 360) + ANGLE_BINS) % ANGLE_BINS)] += weight;
-            // Console.WriteLine("Angle: " + (int)(((GunBearingTo(predictedX, predictedY) * ANGLE_BINS / 360) + ANGLE_BINS) % ANGLE_BINS) + " Weight: " + weight);
-
-            Graphics.DrawEllipse(new Pen(Color.Blue), (float)predictedX, (float)predictedY, 20, 20);
         }
 
         double bestAngle = 0;
@@ -760,6 +774,8 @@ public class EnemyData
     public double LastY { get; set; }
     public double LastEnergy { get; set; }
     public double LastSpeed { get; set; }
+    public double LastAngularVelocity { get; set; }
+    public double LastAcceleration { get; set; }
 }
 
 public struct Bullet
