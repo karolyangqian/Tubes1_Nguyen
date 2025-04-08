@@ -62,6 +62,7 @@ v1.5
 - Add SAG corner avoidance
 - Add not-target enemy data
 - Add Bin Smoothing
+- Handle myBullet 
 
 🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕
 
@@ -201,13 +202,21 @@ public class Woff : Bot
                         (float)(3 * bullet.Power), (float)(3 * bullet.Power));
             // Console.WriteLine("BulletId: " + i + " X: " + bullet.X + " Y: " + bullet.Y);
 
+            bool bulletHandled = false;
             EnemyData data = enemyData[myBullets[i].Target];
-            if (distance(data.LastX, data.LastY, bullet.X, bullet.Y) < ENEMY_RADIUS)
+            foreach (var enemy in enemyData)
             {
-                data.Type[myBullets[i].Type] += 5;
-                myBullets.RemoveAt(i);
+                if (enemy.Value.IsAlive && distance(data.LastX, data.LastY, bullet.X, bullet.Y) < ENEMY_RADIUS)
+                {
+                    data.Type[myBullets[i].Type] += 5;
+                    myBullets.RemoveAt(i);
+                    bulletHandled = true;
+                    break;
+                }
             }
-            else if (bullet.X < 0 - BULLET_OFFSET_ARENA || bullet.X > ArenaWidth + BULLET_OFFSET_ARENA || 
+            if (bulletHandled) continue;
+
+            if (bullet.X < 0 - BULLET_OFFSET_ARENA || bullet.X > ArenaWidth + BULLET_OFFSET_ARENA || 
                 bullet.Y < 0 - BULLET_OFFSET_ARENA || bullet.Y > ArenaHeight + BULLET_OFFSET_ARENA)
             {
                 data.Type[myBullets[i].Type]--;
