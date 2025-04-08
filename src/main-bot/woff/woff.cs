@@ -52,6 +52,9 @@ v1.2
 - Multiple Choice PIF using Monte Carlo Simulation
 - Fix PIF virtual bullet direction
 
+v1.3
+- Multi-order N-gram
+
 🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕
 
 */
@@ -71,7 +74,7 @@ public class Woff : Bot
     private readonly static double  GRAV_OVERRIDE_TRESHOLD = 0.9;
     private readonly static double  ENEMY_RADIUS = 9;
     private readonly static int     SAG_LIMIT = 3;
-    private readonly static int     NGRAM_ORDER = 3;
+    private readonly static int     NGRAM_ORDER = 10;
     private readonly static int     BULLET_OFFSET_ARENA = 50;
     private readonly static int     ENEMY_GRAVITY_CONSTANT = 300;
     private readonly static int     BULLET_GRAVITY_CONSTANT = 10;
@@ -342,15 +345,21 @@ public class Woff : Bot
         State currentState = new State(angularVelocity, currentSpeed, acceleration);
         data.StateHistory.Add(currentState);
 
-        if (data.StateHistory.Count >= NGRAM_ORDER)
+        for (int contextLen = Math.Min(NGRAM_ORDER - 1, data.StateHistory.Count - 1); contextLen >= 1; contextLen--)
         {
-            List<State> contextStates = data.StateHistory.GetRange(data.StateHistory.Count - (NGRAM_ORDER - 1), NGRAM_ORDER - 1);
-            StateSequence contextKey = new StateSequence(contextStates);
-            if (!data.NgramTree.ContainsKey(contextKey))
+            if (data.StateHistory.Count >= contextLen + 1)
             {
-                data.NgramTree[contextKey] = new FrequencyMap();
+                int startIndex = data.StateHistory.Count - 1 - contextLen;
+                List<State> contextStates = data.StateHistory.GetRange(startIndex, contextLen);
+                StateSequence contextKey = new StateSequence(contextStates);
+
+                if (!data.NgramTree.ContainsKey(contextKey))
+                {
+                    data.NgramTree[contextKey] = new FrequencyMap();
+                }
+
+                data.NgramTree[contextKey].Add(currentState);
             }
-            data.NgramTree[contextKey].Add(currentState);
         }
         data.HasPrevious = true;
 
@@ -386,32 +395,86 @@ public class Woff : Bot
             int time = 0;
             while (time * bulletSpeed < DistanceTo(predictedX, predictedY) && time < 100)
             {
-                if (simContext != null)
+                State? predictedNextState = null;
+                double weightAdjustment = 1.0;
+
+                if (simContext != null && simContext.Count > 0)
                 {
-                    StateSequence simContextKey = new StateSequence(simContext);
-                    if (data.NgramTree.ContainsKey(simContextKey))
+                    Dictionary<State, int> aggregatedFrequencies = new Dictionary<State, int>();
+                    int totalAggregatedCount = 0;
+
+                    for (int len = Math.Min(NGRAM_ORDER - 1, simContext.Count); len >= 1; len--)
                     {
-                        State nextState = data.NgramTree[simContextKey].GetRandomState();
-                        simAngVel = nextState.AngularVelocity / 512.0;
-                        predictedSpeed += nextState.Acceleration;
-                        simContext.RemoveAt(0);
+                        List<State> currentSimContextPortion = simContext.GetRange(simContext.Count - len, len);
+                        StateSequence simContextKey = new StateSequence(currentSimContextPortion);
+
+                        if (data.NgramTree.TryGetValue(simContextKey, out FrequencyMap freqMap))
+                        {
+                            foreach (var kvp in freqMap.GetFrequencies())
+                            {
+                                State state = kvp.Key;
+                                int count = kvp.Value;
+
+                                aggregatedFrequencies.TryGetValue(state, out int currentAggregatedCount);
+                                aggregatedFrequencies[state] = currentAggregatedCount + count;
+
+                                totalAggregatedCount += count;
+                            }
+                        }
+                    }
+
+                    if (totalAggregatedCount > 0)
+                    {
+                        int randomIndex = rand.Next(0, totalAggregatedCount);
+                        int cumulativeCount = 0;
+
+                        foreach (var kvp in aggregatedFrequencies)
+                        {
+                            cumulativeCount += kvp.Value; 
+                            if (randomIndex < cumulativeCount)
+                            {
+                                predictedNextState = kvp.Key;
+                                break;
+                            }
+                        }
+
+                        if (!predictedNextState.HasValue && aggregatedFrequencies.Count > 0) {
+                            predictedNextState = aggregatedFrequencies.OrderByDescending(kvp => kvp.Value).First().Key;
+                        }
+                    }
+
+                }
+
+
+                if (predictedNextState.HasValue)
+                {
+                    State nextState = predictedNextState.Value;
+                    simAngVel = nextState.AngularVelocity / 512.0;
+                    predictedSpeed = Math.Clamp(predictedSpeed + nextState.Acceleration, -MaxSpeed, MaxSpeed);
+
+                    if (simContext != null) {
+                        if (simContext.Count >= NGRAM_ORDER - 1 && NGRAM_ORDER > 1) {
+                            simContext.RemoveAt(0);
+                        }
                         simContext.Add(nextState);
                     }
-                    else
-                    {
-                        weight *= 0.1;
-                    }
                 }
+                else
+                {
+                    weightAdjustment = 0.1;
+                }
+
+                weight *= weightAdjustment;
+
                 predictedDirection += simAngVel;
                 predictedX += predictedSpeed * Math.Cos(predictedDirection);
                 predictedY += predictedSpeed * Math.Sin(predictedDirection);
-                
-                if (predictedX < 0 || predictedX > ArenaWidth || 
+
+                if (predictedX < 0 || predictedX > ArenaWidth ||
                     predictedY < 0 || predictedY > ArenaHeight)
                 {
                     weight *= 0.01;
                 }
-                
                 time++;
             }
 
@@ -763,18 +826,8 @@ public class FrequencyMap
         totalCount++;
     }
 
-    public State GetRandomState()
+    public IReadOnlyDictionary<State, int> GetFrequencies()
     {
-        // Console.WriteLine("Total Count: " + totalCount);
-        int randomIndex = rand.Next(0, totalCount);
-        foreach (var kvp in frequencies)
-        {
-            if (randomIndex < kvp.Value)
-            {
-                return kvp.Key;
-            }
-            randomIndex -= kvp.Value;
-        }
-        return default(State);
+        return frequencies;
     }
 }
