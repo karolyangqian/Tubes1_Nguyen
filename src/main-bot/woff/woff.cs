@@ -8,7 +8,7 @@ using Robocode.TankRoyale.BotApi.Events;
 // ------------------------------------------------------------------
 // woff 🐶
 // ------------------------------------------------------------------
-// Targeting: Multiple Choice Play It Forward
+// Targeting: Multiple Choice Play It Forward / Melee Gun
 // Movement: Anti-Gravity & Stop and Go
 // ------------------------------------------------------------------
 /*
@@ -58,6 +58,10 @@ v1.3
 v1.4
 - Melee Gun
 
+v1.5
+- Add SAG corner avoidance
+- Add not-target enemy data
+
 🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕🐕
 
 */
@@ -76,6 +80,8 @@ public class Woff : Bot
     private readonly static double  MIN_DIVISOR = 1e-6;
     private readonly static double  GRAV_OVERRIDE_TRESHOLD = 0.9;
     private readonly static double  ENEMY_RADIUS = 9;
+    private readonly static double  SAG_ENEMY_DISTANCE_THRESHOLD = 250;
+    private readonly static double  SAG_CORNER_DISTANCE_THRESHOLD = 80;
     private readonly static int     SAG_LIMIT = 3;
     private readonly static int     NGRAM_ORDER = 5;
     private readonly static int     MIN_NGRAM_ORDER = 2;
@@ -211,7 +217,13 @@ public class Woff : Bot
         }
 
         if (hitsag > SAG_LIMIT) dontsag = true;
-        if (!dontsag && EnemyCount == 1 && targetDistance > 250) return;
+        if (!dontsag && EnemyCount == 1 && 
+            targetDistance > SAG_ENEMY_DISTANCE_THRESHOLD && 
+            distance(X, Y, 0, 0) > SAG_CORNER_DISTANCE_THRESHOLD &&
+            distance(X, Y, 0, ArenaHeight) > SAG_CORNER_DISTANCE_THRESHOLD &&
+            distance(X, Y, ArenaWidth, 0) > SAG_CORNER_DISTANCE_THRESHOLD &&
+            distance(X, Y, ArenaWidth, ArenaHeight) > SAG_CORNER_DISTANCE_THRESHOLD 
+        ) return;
         
         // Anti-Gravity
         double bestX = X;
@@ -281,13 +293,37 @@ public class Woff : Bot
         data.LastX = e.X;
         data.LastY = e.Y;
         data.IsAlive = true;
-        double currentSpeed = e.Speed;
-        data.LastSpeed = currentSpeed;
         double currentDirection = toRad(NormalizeRelativeAngle(e.Direction));
-        double angularVelocity = data.HasPrevious ? 
+        double angularVelocity = data.LastScanTurnNumber != -1 ? 
                                 (currentDirection - data.LastDirection + Math.PI) % (2 * Math.PI) - Math.PI : 0;
         data.LastAngularVelocity = angularVelocity;
         data.LastDirection = currentDirection;
+        double currentSpeed = e.Speed;
+        double acceleration = data.LastScanTurnNumber != -1 ? currentSpeed - data.LastSpeed : 0;
+        data.LastAcceleration = acceleration;
+        data.LastSpeed = currentSpeed;
+
+        // Input State
+        State currentState = new State(angularVelocity, currentSpeed, acceleration);
+        data.StateHistory.Add(currentState);
+
+        for (int contextLen = Math.Min(NGRAM_ORDER - 1, data.StateHistory.Count - 1); contextLen >= 1; contextLen--)
+        {
+            if (data.StateHistory.Count >= contextLen + 1)
+            {
+                int startIndex = data.StateHistory.Count - 1 - contextLen;
+                List<State> contextStates = data.StateHistory.GetRange(startIndex, contextLen);
+                StateSequence contextKey = new StateSequence(contextStates);
+
+                if (!data.NgramTree.ContainsKey(contextKey))
+                {
+                    data.NgramTree[contextKey] = new FrequencyMap();
+                }
+
+                data.NgramTree[contextKey].Add(currentState);
+            }
+        }
+        data.LastScanTurnNumber = TurnNumber;
 
         // Lock closest target
         double scannedDistance = enemyDistance = DistanceTo(e.X, e.Y);
@@ -319,6 +355,7 @@ public class Woff : Bot
 
         // Input Virtual Bullets
         double energyDrop = data.LastEnergy - e.Energy;
+        data.LastEnergy = e.Energy;
         if (0.1 <= energyDrop && energyDrop <= 3)
         {
             AddVirtualBullet(e.X, e.Y, CalcBulletSpeed(energyDrop), energyDrop, (180 + DirectionTo(e.X, e.Y)));
@@ -343,31 +380,6 @@ public class Woff : Bot
             }
             // Console.WriteLine("Bullet Speed: " + CalcBulletSpeed(energyDrop) + " Power: " + energyDrop);
         }
-        data.LastEnergy = e.Energy;
-
-        // Input State
-        double acceleration = data.HasPrevious ? currentSpeed - data.LastSpeed : 0;
-        data.LastAcceleration = acceleration;
-        State currentState = new State(angularVelocity, currentSpeed, acceleration);
-        data.StateHistory.Add(currentState);
-
-        for (int contextLen = Math.Min(NGRAM_ORDER - 1, data.StateHistory.Count - 1); contextLen >= 1; contextLen--)
-        {
-            if (data.StateHistory.Count >= contextLen + 1)
-            {
-                int startIndex = data.StateHistory.Count - 1 - contextLen;
-                List<State> contextStates = data.StateHistory.GetRange(startIndex, contextLen);
-                StateSequence contextKey = new StateSequence(contextStates);
-
-                if (!data.NgramTree.ContainsKey(contextKey))
-                {
-                    data.NgramTree[contextKey] = new FrequencyMap();
-                }
-
-                data.NgramTree[contextKey].Add(currentState);
-            }
-        }
-        data.HasPrevious = true;
 
         // Head-on fallback
         int headon = data.Type.IndexOf(data.Type.Max());
@@ -767,7 +779,7 @@ public class EnemyData
     public List<State> StateHistory { get; } = new List<State>();
     public Dictionary<StateSequence, FrequencyMap> NgramTree { get; } = new Dictionary<StateSequence, FrequencyMap>();
     public List<int> Type { get; set; } = new List<int> { 5, 0 };
-    public bool HasPrevious { get; set; } = false;
+    public int LastScanTurnNumber { get; set; } = -1;
     public bool IsAlive { get; set; } = true;
     public double LastDirection { get; set; }
     public double LastX { get; set; }
