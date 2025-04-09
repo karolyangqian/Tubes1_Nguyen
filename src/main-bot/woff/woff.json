@@ -1,9 +1,9 @@
 {
   "name": "woff",
-  "version": "1.0",
+  "version": "1.3",
   "authors": ["nguyen"],
   "description": "",
-  "homepage": "",
+  "homepage": "https://github.com/karolyangqian/Tubes1_Nguyen",
   "countryCodes": [""],
   "platform": ".Net 9.0",
   "programmingLang": "C# 10.0"
