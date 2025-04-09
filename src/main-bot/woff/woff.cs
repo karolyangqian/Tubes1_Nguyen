@@ -64,8 +64,8 @@ public class Woff : Bot
     // Knobs
     private readonly static double  ENEMY_ENERGY_THRESHOLD = 3.5;
     private readonly static double  MOVE_WALL_MARGIN = 25;
-    private readonly static double  GUN_FACTOR = 5;
-    private readonly static double  RADAR_LOCK = 0.7;
+    private readonly static double  GUN_FACTOR = 6.66;
+    private readonly static double  RADAR_LOCK = 0.69;
     private readonly static double  MIN_RADIUS = 100;
     private readonly static double  DELTA_RADIUS = 100;
     private readonly static double  ITERATE_RADIUS = 3;
@@ -76,14 +76,14 @@ public class Woff : Bot
     private readonly static double  SAG_ENEMY_DISTANCE_THRESHOLD = 250;
     private readonly static double  SAG_CORNER_DISTANCE_THRESHOLD = 80;
     private readonly static int     SAG_LIMIT = 3;
-    private readonly static int     NGRAM_ORDER = 10;
+    private readonly static int     NGRAM_ORDER = 7;
     private readonly static int     MIN_NGRAM_ORDER = 2;
     private readonly static int     BULLET_OFFSET_ARENA = 50;
     private readonly static int     ENEMY_GRAVITY_CONSTANT = 300;
     private readonly static int     BULLET_GRAVITY_CONSTANT = 10;
     private readonly static int     LAST_LOC_GRAVITY_CONSTANT = 10;
     private readonly static int     CORNER_CONSTANT = 100;
-    private readonly static int     SIMULATION_COUNT = 64;
+    private readonly static int     SIMULATION_COUNT = 48;
     private readonly static int     ANGLE_BINS = 1080;
 
     // Global variables
@@ -196,7 +196,7 @@ public class Woff : Bot
             EnemyData data = enemyData[myBullets[i].Target];
             if (distance(data.LastX, data.LastY, bullet.X, bullet.Y) < ENEMY_RADIUS)
             {
-                data.Type[myBullets[i].Type] += 5;
+                data.Type[myBullets[i].Type] += 3 + (myBullets[i].Type == 0 ? 2 : 0);
                 myBullets.RemoveAt(i);
             }
             else if (bullet.X < 0 - BULLET_OFFSET_ARENA || bullet.X > ArenaWidth + BULLET_OFFSET_ARENA || 
@@ -288,11 +288,11 @@ public class Woff : Bot
         data.LastX = e.X;
         data.LastY = e.Y;
         data.IsAlive = true;
-        double currentSpeed = e.Speed;
         double currentDirection = toRad(NormalizeRelativeAngle(e.Direction));
         double angularVelocity = data.HasPrevious ? 
                                 (currentDirection - data.LastDirection + Math.PI) % (2 * Math.PI) - Math.PI : 0;
         data.LastDirection = currentDirection;
+        double currentSpeed = e.Speed;
         double acceleration = data.HasPrevious ? currentSpeed - data.LastSpeed : 0;
         data.LastSpeed = currentSpeed;
         data.HasPrevious = true;
@@ -637,7 +637,7 @@ public class Woff : Bot
         double d = Math.Pow(b, 2) - 4 * a * c;
         double t1 = (-b + Math.Sqrt(d)) / (2 * a);
         double t2 = (-b - Math.Sqrt(d)) / (2 * a);
-        double t = Math.Max(t1, t2);
+        double t = Math.Min(Math.Max(0, t1), Math.Max(0, t2));
         double predictedX = xt + vxt * t;
         double predictedY = yt + vyt * t;
         double linearDirection = Math.Atan2(predictedY - y, predictedX - x);
@@ -761,7 +761,7 @@ public class EnemyData
 {
     public List<State> StateHistory { get; } = new List<State>();
     public Dictionary<StateSequence, FrequencyMap> NgramTree { get; } = new Dictionary<StateSequence, FrequencyMap>();
-    public List<int> Type { get; set; } = new List<int> { 5, 0 };
+    public List<int> Type { get; set; } = new List<int> { 13 , 0 };
     public bool HasPrevious { get; set; } = false;
     public bool IsAlive { get; set; } = true;
     public double LastDirection { get; set; }
